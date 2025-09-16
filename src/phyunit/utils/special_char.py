@@ -1,8 +1,13 @@
+import re
 from fractions import Fraction
 
 from .number import common_fraction
 
-__all__ = ['superscript']
+__all__ = ['superscript', 'small_frac', 'sup2digit']
+
+
+def sup2digit(s: str) -> str:
+    return s.translate(str.maketrans('⁰¹²³⁴⁵⁶⁷⁸⁹⁺⁻⁼⁽⁾', '0123456789+-=()'))
 
 
 FRAC_CHAR = {common_fraction(k): v for k, v in {

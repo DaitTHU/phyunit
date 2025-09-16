@@ -11,6 +11,7 @@ from .singleunit import SingleUnit
 from .utils import inplace
 from .utils.iter_tools import neg_after
 from .utils.number import common_fraction
+from .utils.special_char import sup2digit
 from .utils.special_char import superscript as sup
 
 _SEP = re.compile(r'[/.·]')  # unit separator pattern
@@ -34,6 +35,7 @@ def _resolve_multi(symbol: str, sep: re.Pattern[str]) -> Compound[SingleUnit]:
     Raises:
         ValueError: If the symbol cannot be parsed into valid units.
     '''
+    symbol = sup2digit(symbol)
     # split symbol into unit+exponent via separator
     unites = [unite for unite in sep.split(symbol) if unite]
     expos = [1 if m is None else int(m.group()) for m in map(_NUM.search, unites)]
