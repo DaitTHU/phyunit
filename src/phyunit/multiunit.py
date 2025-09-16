@@ -2,7 +2,6 @@ import re
 from collections import Counter
 from fractions import Fraction
 from math import prod as float_product
-from typing import Self
 
 from ._data.units import BASE_SI, UNIT, UNIT_STD, UnitData
 from .compound import Compound
@@ -100,7 +99,7 @@ class MultiUnit:
         UNIT[symbol] = UnitData(factor, name, dimension, alias=alias, noprefix=noprefix)
         
     @classmethod
-    def as_unit(cls, unit: str | Self):
+    def as_unit(cls, unit):
         '''transform a str/Unit object to a Unit object.'''
         if isinstance(unit, cls):
             return unit
@@ -129,7 +128,9 @@ class MultiUnit:
             return NotImplemented
         return self.dimension == other.dimension and self.factor == other.factor
 
-    def sameas(self, other: Self) -> bool:
+    def sameas(self, other) -> bool:
+        if not isinstance(other, MultiUnit):
+            return NotImplemented
         return self._elements == other._elements
     
     def isdimensionless(self) -> bool: return self.dimension.isdimensionless()
