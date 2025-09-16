@@ -1,0 +1,13 @@
+[project]
+name = "phyunit"
+version = "0.1.0"
+authors = [
+  { name="Dait", email="daitthu@qq.com" },
+]
+description = "A package for physical units."
+readme = "README.md"
+requires-python = ">=3.12"
+classifiers = [
+    "Programming Language :: Python :: 3",
+    "License :: OSI Approved :: GNU General Public License v3 (GPLv3)",
+]

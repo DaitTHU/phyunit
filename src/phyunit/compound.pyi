@@ -1,0 +1,103 @@
+'''The `Compound` class extends the functionality of a standard `dict` 
+by specializing it for the representation of compounds. 
+
+Each key represents an element that constitutes the compound, and the 
+corresponding value denotes the element's contribution, which may be 
+positive, negative, or zero, but the class is optimized to automatically 
+remove any elements with a zero contribution, as they are not relevant 
+to the compound's composition.
+
+In terms of behavior, `Compound` shares similarities with the `defaultdict` 
+class. For any key that is not explicitly present in the compound, the 
+class assumes a default value of 0. This defaulting mechanism simplifies 
+the handling of missing elements.
+
+A distinctive feature of `Compound` is its automated management of keys with 
+zero values. When the contribution of an element reaches zero, the class 
+removes that key entirely from the compound. This design decision reflects 
+the understanding that elements with no contribution should not be 
+considered as part of the compound, thus ensuring that the representation 
+remains concise and meaningful.
+'''
+
+from fractions import Fraction
+from typing import Generic, Iterable, Iterator, Self, TypeVar, overload
+
+K = TypeVar('K')
+V = TypeVar('V', bound=int | float | Fraction)
+
+
+class Compound(Generic[K]):
+    '''
+    `Compound` is a mapping type similar to `defaultdict`, 
+    with zero as the default value for missing keys and 
+    automatic removal of items set to zero.
+    
+    Construction:
+    - Constructed from a `dict` or an `Iterable` of key-value pairs.
+        
+    >>> Compound({'a': 0, 'b': 1, 'c': 2})
+    {'b': 1, 'c': 2} 
+    >>> Compound(zip('abc', range(3)))
+    {'b': 1, 'c': 2} 
+    
+    Item Access:
+    - Accessing a missing key returns zero.
+    - Setting a key to zero removes it from the mapping.
+
+    >>> compound['missing']
+    0
+    >>> compound['b'] = 0  # 'b' is removed
+    
+    Operations:
+    - Supports addition and subtraction between `Compound` objects.
+    - Supports multiplication and division with numbers.
+        
+    >>> Compound({'b': 1, 'c': 2}) + Compound({'c': -1/2, 'd': 3})
+    {'b': 1, 'c': 3/2, 'd': 3}
+    >>> Compound({'b': 1, 'c': 2}) / 2
+    {'b': 1/2, 'c': 1}
+    
+    Methods:
+    - `copy()`: Returns a copy of the compound.
+    - `keys()`, `values()`, `items()`: Standard dictionary-like accessors.
+    - `pos_items()`, `neg_items()`: Filters for positive/negative values.
+    - `pop(key)`, `clear()`: Remove items.
+    '''
+
+    @overload
+    def __init__(self) -> None: ...
+    @overload
+    def __init__(self, elements: dict[K, int | float | Fraction], /) -> None: ...
+    def __contains__(self, key: K) -> bool: ...
+    def __getitem__(self, key: K) -> Fraction: ...
+    def __setitem__(self, key: K, value: int | float | Fraction) -> None: ...
+    def __delitem__(self, key: K) -> None: ...
+    def __iter__(self) -> Iterator[K]: ...
+    def __str__(self) -> str: ...
+    def __len__(self) -> int: ...
+    def copy(self) -> Self: ...
+    def keys(self) -> Iterable[K]: ...
+    def values(self) -> Iterable[Fraction]: ...
+    def items(self) -> Iterable[tuple[K, Fraction]]: ...
+    def pos_items(self) -> filter[tuple[K, Fraction]]: ...
+    def neg_items(self) -> filter[tuple[K, Fraction]]: ...
+    @overload
+    def pop(self, key: K) -> Fraction: ...
+    @overload
+    def pop(self, key: K, default: Fraction) -> Fraction: ...
+    @overload
+    def pop(self, key: K, default: V) -> Fraction | V: ...
+    def clear(self) -> None: ...
+    def __eq__(self, other: object) -> bool: ...
+    def __pos__(self) -> Self: ...
+    def __neg__(self) -> Self: ...
+    def __add__(self, other: Compound[K]) -> Self: ...
+    def __sub__(self, other: Compound[K]) -> Self: ...
+    def __mul__(self, other: int | float | Fraction) -> Self: ...
+    def __truediv__(self, other: int | float | Fraction) -> Self: ...
+    def __iadd__(self, other: Compound[K]) -> Self: ...
+    def __isub__(self, other: Compound[K]) -> Self: ...
+    def __imul__(self, other: int | float | Fraction) -> Self: ...
+    def __itruediv__(self, other: int | float | Fraction) -> Self: ...
+    def __rmul__(self, other: int | float | Fraction) -> Self: ...
