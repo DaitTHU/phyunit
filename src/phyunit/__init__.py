@@ -1,4 +1,8 @@
-__version__ = (0, 1, 1)
+'''
+A package for physical units and quantities.
+'''
+
+__version__ = "0.1.2"
 
 from . import SI
 from .dimension import Dimension

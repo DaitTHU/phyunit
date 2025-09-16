@@ -7,16 +7,17 @@ __all__ = ['SI']
 
 
 class SI(ConstClass):
-    '''The `SI` constclass offers common fundamental physical constants,
-    like speed of light (c), Planck const (h)... which are all
-    immutable `Quantity` objects with proper units.
+    '''
+    The `SI` class contains common physical constants in SI units,
+    like speed of light (_c_), Planck constant (_h_)...
 
-    For example, accessing the standard acceleration of gravity (g) 
-    can be done as follows:
-    >>> SI.g
+    For example, the standard acceleration of gravity (_g_) is:
+    >>> print(SI.g)
     9.80665 m/s²
 
-    These constants can be directly incorporated into your formulas or code.
+    These constants can be directly used in formulas or code.
+
+    Ref: http://physics.nist.gov/constants
     '''
 
     # exact constants defined by SI
@@ -98,9 +99,7 @@ class SI(ConstClass):
 
     alpha = constant(e**2 / (2 * epsilon0 * h * c), simplify=True)
     '''fine-structure constant'''
-    alphainv = constant(1 / alpha)
-    '''inverse fine-structure constant'''
-    a0 = constant(hbar / (alpha * me * c))
+    a0 = constant(hbar / (alpha * me * c), simplify=True)
     '''Bohr radius'''
     lambdaC = constant(h / (me * c), simplify=True)
     '''Compton wavelength'''

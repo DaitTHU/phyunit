@@ -14,6 +14,9 @@ from .utils.number import common_fraction
 from .utils.special_char import sup2digit
 from .utils.special_char import superscript as sup
 
+UNITLESS = SingleUnit('')
+ONE_UNITLESS = Compound({UNITLESS: 1})
+
 _SEP = re.compile(r'[/.·]')  # unit separator pattern
 _SEPS = re.compile(r'[/.· ]')  # unit separator pattern with space
 _NUM = re.compile(r'[+-]?[0-9]+$')  # number pattern
@@ -22,22 +25,22 @@ _EXPO = re.compile(r'\^?[+-]?[0-9]+$')  # exponent pattern
 
 def _resolve_multi(symbol: str, sep: re.Pattern[str]) -> Compound[SingleUnit]:
     '''
-    Resolve a unit symbol string into its constituent unit elements as a Compound of SimpleUnit.
+    Resolve a unit symbol string into its constituent unit elements as a Compound of SingleUnit.
     This function parses a unit symbol (e.g., "m/s^2", "kg·m^2/s^2") and decomposes it into its
     base units and their corresponding exponents. It handles unit separators (/, ., ·),
     parses exponents, and correctly negates exponents for units following a division ("/").
-    The result is a Compound object mapping SimpleUnit instances to their integer exponents.
+    The result is a Compound object mapping SingleUnit instances to their integer exponents.
     Args:
         symbol (str): The unit symbol string to resolve.
         sep (re.Pattern): The regex pattern used to split the symbol into units.
     Returns:
-        Compound[SimpleUnit]: A mapping of SimpleUnit objects to their exponents representing the parsed unit.
+        Compound[SingleUnit]: A mapping of SingleUnit objects to their exponents representing the parsed unit.
     Raises:
         ValueError: If the symbol cannot be parsed into valid units.
     '''
     symbol = sup2digit(symbol)
     # split symbol into unit+exponent via separator
-    unites = [unite for unite in sep.split(symbol) if unite]
+    unites = [unite for unite in sep.split(symbol)]
     expos = [1 if m is None else int(m.group()) for m in map(_NUM.search, unites)]
     # find the first '/' and negate all exponents after it
     for i, sep_match in enumerate(sep.finditer(symbol)):
@@ -46,7 +49,7 @@ def _resolve_multi(symbol: str, sep: re.Pattern[str]) -> Compound[SingleUnit]:
             break
     elements: Compound[SingleUnit] = Compound()
     for unite, e in zip(unites, expos):
-        if e != 0:
+        if e != 0 and unite:
             elements[SingleUnit(_EXPO.sub('', unite))] += e
     return elements
 
@@ -67,6 +70,11 @@ class MultiUnit:
     @classmethod
     def _move(cls, elements: Compound[SingleUnit], /):
         obj = super().__new__(cls)
+        if UNITLESS in elements:
+            if len(elements) == 1:
+                elements = ONE_UNITLESS
+            else:
+                del elements[UNITLESS]
         obj.__derive_properties(elements)
         return obj
     

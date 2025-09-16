@@ -58,7 +58,7 @@ class Constant(Generic[T]):
     def __repr__(self) -> str:
         if self.unit == UNITLESS:
             return f'{self.__class__.__name__}({self.value})'
-        return f'{self.__class__.__name__}({self.value}, {self.unit})'
+        return f"{self.__class__.__name__}({self.value}, '{self.unit}')"
     
     def __str__(self):
         if self.unit == UNITLESS:
@@ -396,7 +396,7 @@ class Quantity(Constant[T]):
 def constant(quantity: Quantity[T], unit: None | str | Unit = None, *, simplify=False):
     '''to make a Quantity object to a Constant.'''
     if unit is not None:
-        quantity.to(unit)
+        quantity = quantity.to(unit)
     elif simplify:
-        return Constant(quantity.value, quantity.unit.simplify())
+        quantity = quantity.simplify_unit()
     return Constant(quantity.value, quantity.unit)
