@@ -1,16 +1,16 @@
 import operator
 from typing import Generic, TypeVar
 
+try:
+    import numpy as np  # type: ignore
+except ImportError:
+    from .utils import numpy_phony as np
+
 from .dimension import Dimension
 from .multiunit import MultiUnit
 from .utils import inplace
 from .utils.numpy_ufunc import ufunc_dict
 from .utils.valuetype import ValueType
-
-try:
-    import numpy as np  # type: ignore
-except ImportError:
-    from .utils import numpy_phony as np
 
 T = TypeVar('T', bound=ValueType)
 
@@ -34,6 +34,9 @@ class Unit(MultiUnit):
 
 UNITLESS = Unit('')
 DIMENSIONLESS = UNITLESS.dimension
+
+DEGREE = Unit('degree')
+RADIAN = Unit('rad')
 
 
 class Constant(Generic[T]):
@@ -238,79 +241,79 @@ class Constant(Generic[T]):
         return Quantity(self.value**(1/n), self.unit.root(n))
 
     def __array_ufunc__(self, ufunc, method, *inputs, **kwargs):
-        
+        ufunc_name = ufunc.__name__
         units = [i.unit if isinstance(i, self._base_cls) else UNITLESS for i in inputs]
         unit = None  # None means output is just value, not Quantity
-        if ufunc in ufunc_dict['dimless']:
+        if ufunc_name in ufunc_dict['dimless']:
             if not all(u.isdimensionless() for u in units):
                 dims = ', '.join(f"'{u.dimension}'" for u in units if not u.isdimensionless())
-                msg = f"Quantities in '{ufunc.__name__}' must be dimensionless, got {dims}."
+                msg = f"Quantities in '{ufunc_name}' must be dimensionless, got {dims}."
                 raise ValueError(msg)
             unit = None
-        elif ufunc in ufunc_dict['bool']:
+        elif ufunc_name in ufunc_dict['bool']:
             unit = None
-        elif ufunc in ufunc_dict['comparison'] or ufunc in ufunc_dict['dimsame']:
+        elif ufunc_name in ufunc_dict['comparison'] or ufunc_name in ufunc_dict['dimsame']:
             if len(set(u.dimension for u in units)) > 1:
                 dims = ', '.join(f"'{u.dimension}'" for u in units)
-                msg = f"Quantities in '{ufunc.__name__}' must have the same dimension, got {dims}."
+                msg = f"Quantities in '{ufunc_name}' must have the same dimension, got {dims}."
                 raise ValueError(msg)
-            if ufunc in ufunc_dict['dimsame'] and ufunc != np.arctan2:
+            if ufunc_name in ufunc_dict['dimsame'] and ufunc_name != 'arctan2':
                 unit = units[0]
-        elif ufunc in ufunc_dict['preserve']:
+        elif ufunc_name in ufunc_dict['preserve']:
             unit = units[0]
-        elif ufunc in ufunc_dict['angle']:
-            if ufunc == np.deg2rad and units[0].symbol != '°':
+        elif ufunc_name in ufunc_dict['angle']:
+            if ufunc_name == 'deg2rad' and units[0] != DEGREE:
                 msg = "deg2rad(quantity) requires unit to be degree."
                 raise ValueError(msg)
-            if ufunc == np.rad2deg and units[0].symbol != 'rad':
+            if ufunc_name == 'rad2deg' and units[0] != RADIAN:
                 msg = "deg2rad(quantity) requires unit to be radian."
                 raise ValueError(msg)
-            if ufunc == np.deg2rad or ufunc == np.radians:
-                unit = Unit('rad')
-            elif ufunc == np.rad2deg or ufunc == np.degrees:
-                unit = Unit('degree')
+            if ufunc_name in {'deg2rad', 'radians'}:
+                unit = RADIAN
+            elif ufunc_name in {'rad2deg', 'degrees'}:
+                unit = DEGREE
             else:
-                msg = f"ufunc not covered, got '{ufunc.__name__}'"
+                msg = f"ufunc not covered, got '{ufunc_name}'"
                 raise ValueError(msg)
-        elif ufunc in ufunc_dict['nonlinear']:
-            if ufunc == np.multiply or ufunc == np.matmul:
-                unit = units[0] * units[1]
-            elif ufunc == np.square:
+        elif ufunc_name in ufunc_dict['product']:
+            unit = units[0] * units[1]
+        elif ufunc_name in ufunc_dict['nonlinear']:
+            if ufunc_name == 'square':
                 unit = units[0]**2
-            elif ufunc == np.true_divide:
+            elif ufunc_name == 'true_divide':
                 unit = units[0] / units[1]
-            elif ufunc == np.reciprocal:
+            elif ufunc_name == 'reciprocal':
                 unit = units[0].inverse()
-            elif ufunc == np.sqrt:
+            elif ufunc_name == 'sqrt':
                 unit = units[0].root(2)
-            elif ufunc == np.cbrt:
+            elif ufunc_name == 'cbrt':
                 unit = units[0].root(3)
             else:
-                msg = f"ufunc not covered, got '{ufunc.__name__}'"
+                msg = f"ufunc not covered, got '{ufunc_name}'"
                 raise ValueError(msg)
-        elif ufunc in ufunc_dict['other']:
-            if ufunc == np.copysign:
+        elif ufunc_name in ufunc_dict['other']:
+            if ufunc_name == 'copysign':
                 unit = units[0]
-            elif ufunc == np.heaviside and not units[1].isdimensionless():
+            elif ufunc_name == 'heaviside' and not units[1].isdimensionless():
                 msg = f"Heaviside(x) must be dimensionless, got '{units[1].dimension}'"
                 raise ValueError(msg)
-            elif ufunc == np.power or ufunc == np.float_power:
+            elif ufunc_name in {'power', 'float_power'}:
                 if not units[1].isdimensionless():
                     msg = f"Exponent must be dimensionless, got '{units[1].dimension}'"
                     raise ValueError(msg)
                 unit = units[0]**inputs[1]
-            elif ufunc == np.frexp:
+            elif ufunc_name == 'frexp':
                 mantissa, exponent = ufunc(inputs[0].value, **kwargs)
                 return Quantity(mantissa, units[0]), exponent
-            elif ufunc == np.ldexp:
+            elif ufunc_name == 'ldexp':
                 unit = units[0]
-            elif ufunc == np.sign or ufunc == np.signbit:
+            elif ufunc_name in {'sign', 'signbit'}:
                 unit = None
             else:
-                msg = f"ufunc not covered, got '{ufunc.__name__}'"
+                msg = f"ufunc not covered, got '{ufunc_name}'"
                 raise ValueError(msg)
         else:
-            msg = f"ufunc not covered, got '{ufunc.__name__}'"
+            msg = f"ufunc not covered, got '{ufunc_name}'"
             raise ValueError(msg)
         func = getattr(ufunc, method)
         inputs = [i._std_value if isinstance(i, self._base_cls) else i for i in inputs]
