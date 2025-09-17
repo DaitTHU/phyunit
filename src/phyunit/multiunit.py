@@ -14,9 +14,6 @@ from .utils.number import common_fraction
 from .utils.special_char import sup2digit
 from .utils.special_char import superscript as sup
 
-UNITLESS = SingleUnit('')
-ONE_UNITLESS = Compound({UNITLESS: 1})
-
 _SEP = re.compile(r'[/.·]')  # unit separator pattern
 _SEPS = re.compile(r'[/.· ]')  # unit separator pattern with space
 _NUM = re.compile(r'[+-]?[0-9]+$')  # number pattern
@@ -70,11 +67,6 @@ class MultiUnit:
     @classmethod
     def _move(cls, elements: Compound[SingleUnit], /):
         obj = super().__new__(cls)
-        if UNITLESS in elements:
-            if len(elements) == 1:
-                elements = ONE_UNITLESS
-            else:
-                del elements[UNITLESS]
         obj.__derive_properties(elements)
         return obj
     
@@ -161,21 +153,28 @@ class MultiUnit:
         
     def simplify(self):
         '''
-        try if the complex unit can be simplified as a single unit
-        (i.e. `u`, `u⁻¹`, `u²`, `u⁻²`). 
-        
-        `u` is one of the chosen standard SI units for different dimensions,
-        like mass for kg, length for m, time for s, etc.
-        Here is the full list of them:
-        - Base: m[L], kg[M], s[T], A[I], K[H], mol[N], cd[J];
-        - Mechanic: Hz[T⁻¹], N[T⁻²LM], Pa[T⁻²L⁻¹M], J[T⁻²L²M], W[T⁻³L²M];
-        - Electromagnetic: C[TI], V[T⁻³L²MI⁻¹], F[T⁴L⁻²M⁻¹I²], Ω[T⁻³L²MI⁻²], 
-            S[T³L⁻²M⁻¹I²], Wb[T⁻²L²MI⁻¹], T[T⁻²MI⁻¹], H[T⁻²L²MI⁻²];
-        - Other: lx[L⁻²J], Gy[T⁻²L²], kat[T⁻¹N]
+        Simplify the complex unit to a simple unit with the same dimension.
+
+        The form will be the one of _u_, _u⁻¹_, _u²_, _u⁻²_,
+        where _u_ stands for the standard SI unit,
+        like mass for _kg_, length for _m_, time for _s_, etc.
+
+        Here list the standard SI units for different dimensions:
+        - Base: 
+          _m_ [L], _kg_ [M], _s_ [T], _A_ [I], _K_ [H], _mol_ [N], _cd_ [J];
+        - Mechanic: 
+          _Hz_ [T⁻¹], _N_ [T⁻²LM], _Pa_ [T⁻²L⁻¹M], _J_ [T⁻²L²M], _W_ [T⁻³L²M];
+        - Electromagnetic: 
+          _C_ [TI], _V_ [T⁻³L²MI⁻¹], _F_ [T⁴L⁻²M⁻¹I²], _Ω_ [T⁻³L²MI⁻²],
+          _S_ [T³L⁻²M⁻¹I²], _Wb_ [T⁻²L²MI⁻¹], _T_ [T⁻²MI⁻¹], _H_ [T⁻²L²MI⁻²];
+        - Other:
+          _lx_ [L⁻²J], _Gy_ [T⁻²L²], _kat_ [T⁻¹N]
         '''
         # single unit itself
         if len(self._elements) < 2:
             return self
+        if self.isdimensionless():
+            return self._move(Compound._move({}))  # type: ignore
         # single unit with simple exponent
         _SIMPLE_EXPONENT = tuple(map(common_fraction, (1, -1, 2, -2)))
         for e in _SIMPLE_EXPONENT:

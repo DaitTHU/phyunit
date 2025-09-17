@@ -266,6 +266,7 @@ UNIT_ALIAS = {
 # unit standard, every dimension has one SI basic/standard unit
 # values() = {m kg s A K mol cd Hz N Pa J W C V F Ω S Wb T H lx Gy kat}
 __IRREGULAR_UNIT_DIM: set[Dimension] = {
+    DimensionConst.DIMENSIONLESS,
     DimensionConst.WAVENUMBER, DimensionConst.AREA, DimensionConst.VOLUME,
     DimensionConst.VELOCITY, DimensionConst.ACCELERATION, DimensionConst.MOMENTUM,
     DimensionConst.EXPOSURE
