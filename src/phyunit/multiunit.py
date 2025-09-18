@@ -10,7 +10,6 @@ from .exceptions import UnitOverwriteWarning
 from .singleunit import SingleUnit
 from .utils import inplace
 from .utils.iter_tools import neg_after
-from .utils.number import common_fraction
 from .utils.special_char import sup2digit
 from .utils.special_char import superscript as sup
 
@@ -176,7 +175,7 @@ class MultiUnit:
         if self.isdimensionless():
             return self._move(Compound._move({}))  # type: ignore
         # single unit with simple exponent
-        _SIMPLE_EXPONENT = tuple(map(common_fraction, (1, -1, 2, -2)))
+        _SIMPLE_EXPONENT = tuple(map(Fraction, (1, -1, 2, -2)))
         for e in _SIMPLE_EXPONENT:
             symbol = UNIT_STD.get(self.dimension.root(e))
             if symbol is None:

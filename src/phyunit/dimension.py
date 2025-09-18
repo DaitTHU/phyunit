@@ -16,7 +16,6 @@ _VARIABLE = ('T', 'L', 'M', 'I', 'Theta', 'N', 'J')
 _SYMBOL = ('T', 'L', 'M', 'I', 'Θ', 'N', 'J')
 _DICT = {s: i for i, s in enumerate(_SYMBOL)}
 _LEN = len(_SYMBOL)
-_GCOEF = tuple(map(common_fraction, (-2, 3/2, 1/2, -1, 0, 0, 0)))
 
 
 class Dimension:
@@ -98,7 +97,11 @@ class Dimension:
 
     def asGaussian(self):
         '''Gaussian unit system: 1 statC = 1 g¹ᐟ²·cm³ᐟ²/s'''
-        return self._move(v + c * self.I for c, v in zip(_GCOEF, self))
+        I = self.I
+        T = self.T - I
+        L = self.L + I * 3 / 2
+        M = self.M + I / 2
+        return self.__class__(T, L, M, 0, self.Theta, self.N, self.J)
 
     def inverse(self):
         '''inverse of the Dimension.'''
