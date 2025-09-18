@@ -8,8 +8,8 @@ from .compound import Compound
 from .dimension import DIMENSIONLESS, Dimension
 from .exceptions import UnitOverwriteWarning
 from .singleunit import SingleUnit
-from .utils import inplace
 from .utils.iter_tools import neg_after
+from .utils.operator import inplace
 from .utils.special_char import sup2digit
 from .utils.special_char import superscript as sup
 

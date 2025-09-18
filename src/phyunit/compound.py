@@ -2,8 +2,8 @@ from fractions import Fraction
 from itertools import chain
 from typing import Generic, Iterator, TypeVar
 
-from .utils import inplace
 from .utils.number import ZERO, common_fraction
+from .utils.operator import inplace
 
 __all__ = ['Compound']
 

@@ -1,16 +1,9 @@
-import operator
 from fractions import Fraction
 from typing import Iterable, SupportsIndex
 
-from .utils import inplace
 from .utils.number import common_fraction
+from .utils.operator import inplace, xnor
 from .utils.special_char import superscript
-
-
-def xnor(a: bool, b: bool):
-    '''(a and b) or (not a and not b)'''
-    return not operator.xor(a, b)
-
 
 _VARIABLE = ('T', 'L', 'M', 'I', 'Theta', 'N', 'J')
 _SYMBOL = ('T', 'L', 'M', 'I', 'Θ', 'N', 'J')

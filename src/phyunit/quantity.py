@@ -8,8 +8,8 @@ except ImportError:
 
 from .dimension import Dimension
 from .multiunit import MultiUnit
-from .utils import inplace
 from .utils.numpy_ufunc import ufunc_dict
+from .utils.operator import inplace
 from .utils.valuetype import ValueType
 
 T = TypeVar('T', bound=ValueType)
