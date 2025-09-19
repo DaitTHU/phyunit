@@ -226,7 +226,7 @@ class Constant(Generic[T]):
     __imatmul__ = inplace(__matmul__)
     __itruediv__ = inplace(__truediv__)
 
-    def __pow__(self, other: float):
+    def __pow__(self, other):
         return Quantity(self.value ** other, self.unit ** other)
 
     __ipow__ = inplace(__pow__)
@@ -390,7 +390,7 @@ class Quantity(Constant[T]):
     def __imatmul__(self, other): return self.__Imatmul__(other)
     def __itruediv__(self, other): return self.__Itruediv__(other)
 
-    def __ipow__(self, other: float):
+    def __ipow__(self, other):
         self._value **= other
         self._unit **= other
         return self

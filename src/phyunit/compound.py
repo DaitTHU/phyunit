@@ -13,7 +13,7 @@ K = TypeVar('K')
 class Compound(Generic[K]):
     __slots__ = ('_elements',)
 
-    def __init__(self, elements: dict[K, int | float | Fraction] = {}, /) -> None:
+    def __init__(self, elements: dict[K, int | Fraction] = {}, /) -> None:
         if not isinstance(elements, dict):
             raise TypeError(f"{type(elements) = } is not 'dict'.")
         self._elements = {k: common_fraction(v) for k, v in elements.items() if v}
@@ -21,6 +21,7 @@ class Compound(Generic[K]):
     @classmethod
     def _move(cls, elements: dict[K, Fraction], /):
         '''internal __new__, directly move elements.'''
+        assert all(isinstance(v, Fraction) and v != 0 for v in elements.values())
         obj = super().__new__(cls)
         obj._elements = elements
         return obj
@@ -30,7 +31,7 @@ class Compound(Generic[K]):
     def __getitem__(self, key: K) -> Fraction:
         return self._elements.get(key, ZERO)
 
-    def __setitem__(self, key: K, value: int | float | Fraction) -> None:
+    def __setitem__(self, key: K, value: int | Fraction) -> None:
         if value == 0:
             self._elements.pop(key, ZERO)
         else:
@@ -92,13 +93,13 @@ class Compound(Generic[K]):
             return NotImplemented
         return self.__class__({k: self[k] - other[k] for k in chain(self, other)})
 
-    def __mul__(self, other: int | float | Fraction):
+    def __mul__(self, other: int | Fraction):
         if other == 0:
             return self._move({})
         other = common_fraction(other)
         return self._move({k: v * other for k, v in self.items()})
 
-    def __truediv__(self, other: int | float | Fraction):
+    def __truediv__(self, other: int | Fraction):
         other = common_fraction(other)
         return self._move({k: v / other for k, v in self.items()})
 

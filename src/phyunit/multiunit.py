@@ -209,14 +209,14 @@ class MultiUnit:
             return NotImplemented
         return self._move(self._elements - other._elements)
 
-    def __pow__(self, n: int | float | Fraction):
+    def __pow__(self, n: int | Fraction):
         return self._move(self._elements * n)
 
     __imul__ = inplace(__mul__)
     __itruediv__ = inplace(__truediv__)
     __ipow__ = inplace(__pow__)
 
-    def root(self, n: int | float | Fraction):
+    def root(self, n: int | Fraction):
         return self._move(self._elements / n)
 
 
