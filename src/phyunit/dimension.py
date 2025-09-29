@@ -46,7 +46,7 @@ class Dimension:
         amount_of_substance, luminous_intensity = T, L, M, I, Theta, N, J
 
     def __repr__(self) -> str:
-        para = ', '.join(f'{s}={v}' for s, v in zip(_VARIABLE, self))
+        para = ', '.join(f'{s}={v}' for s, v in zip(_VARIABLE, self) if v)
         return '{}({})'.format(self.__class__.__name__, para)
 
     def __str__(self) -> str:
