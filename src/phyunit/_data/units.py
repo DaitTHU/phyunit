@@ -264,17 +264,33 @@ UNIT_ALIAS = {
 
 
 # unit standard, every dimension has one SI basic/standard unit
-# values() = {m kg s A K mol cd Hz N Pa J W C V F Ω S Wb T H lx Gy kat}
-__IRREGULAR_UNIT_DIM: set[Dimension] = {
-    DimensionConst.DIMENSIONLESS,
-    DimensionConst.WAVENUMBER, DimensionConst.AREA, DimensionConst.VOLUME,
-    DimensionConst.VELOCITY, DimensionConst.ACCELERATION, DimensionConst.MOMENTUM,
-    DimensionConst.EXPOSURE
+# values() = {s m kg A K mol cd Hz N Pa J W C V F Ω S Wb T H lx Gy kat}
+__UNIT_STD_DIM: set[Dimension] = {
+    # 7 SI base
+    DimensionConst.TIME, DimensionConst.LENGTH, DimensionConst.MASS,
+    DimensionConst.ELECTRIC_CURRENT, DimensionConst.THERMODYNAMIC_TEMPERATURE,
+    DimensionConst.AMOUNT_OF_SUBSTANCE, DimensionConst.LUMINOUS_INTENSITY,
+    # directly derived
+    DimensionConst.FREQUENCY,
+    # kinematics and dynamics
+    DimensionConst.FORCE, DimensionConst.PRESSURE, DimensionConst.ENERGY,
+    DimensionConst.POWER,
+    # electrodynamics
+    DimensionConst.ELECTRIC_CHARGE, DimensionConst.VOLTAGE,
+    DimensionConst.CAPACITANCE, DimensionConst.RESISTANCE,
+    DimensionConst.CONDUCTANCE, DimensionConst.MAGNETIC_FLUX,
+    DimensionConst.MAGNETIC_FLUX_DENSITY, DimensionConst.INDUCTANCE,
+    # luminous
+    DimensionConst.ILLUMINANCE,
+    # nuclear radiation
+    DimensionConst.KERMA,
+    # chemistry
+    DimensionConst.CATALYTIC_ACTIVITY
 }
 UNIT_STD: dict[Dimension, str] = {
-    dim: firstof(unit_val, default='')
-    for dim, unit_val in __UNIT_LIB.items()
-    if dim not in __IRREGULAR_UNIT_DIM
+    dim: u[0] if isinstance(u := firstof(unit_dict, default=''), tuple) else u
+    for dim, unit_dict in __UNIT_LIB.items()
+    if dim in __UNIT_STD_DIM
 }
 '''standard unit for dimension'''
 UNIT_STD[DimensionConst.MASS] = 'kg'
