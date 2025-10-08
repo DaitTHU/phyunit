@@ -1,12 +1,13 @@
 import re
 from fractions import Fraction
 
-__all__ = ['superscript', 'small_frac', 'sup2digit']
+__all__ = ['superscript', 'small_frac']
 
-
-def sup2digit(s: str) -> str:
-    return s.translate(str.maketrans('⁰¹²³⁴⁵⁶⁷⁸⁹⁺⁻⁼⁽⁾', '0123456789+-=()'))
-
+DIGIT = '0123456789+-=()'
+SUPERSCRIPT = '⁰¹²³⁴⁵⁶⁷⁸⁹⁺⁻⁼⁽⁾'
+SUBSCRIPT = '₀₁₂₃₄₅₆₇₈₉₊₋₌₍₎'
+SUP_TRANS = str.maketrans(SUPERSCRIPT, DIGIT)
+SUB_TRANS = str.maketrans(SUBSCRIPT, DIGIT)
 
 FRAC_CHAR = {Fraction(k).limit_denominator(10): v for k, v in {
     1/2: '½',
@@ -52,10 +53,8 @@ def small_frac(ratio: Fraction) -> str:
 
 
 def _sup(number: int) -> str:
-    SUPERSCRIPT = '⁰¹²³⁴⁵⁶⁷⁸⁹⁺⁻⁼⁽⁾ⁿ'
     return ''.join(SUPERSCRIPT[int(digit)] for digit in str(number))
 
 
 def _sub(number: int) -> str:
-    SUBSCRIPT = '₀₁₂₃₄₅₆₇₈₉₊₋₌₍₎'
     return ''.join(SUBSCRIPT[int(digit)] for digit in str(number))

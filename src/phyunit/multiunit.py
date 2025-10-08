@@ -10,7 +10,7 @@ from .exceptions import UnitOverwriteWarning
 from .singleunit import SingleUnit
 from .utils.iter_tools import neg_after
 from .utils.operator import inplace
-from .utils.special_char import sup2digit
+from .utils.special_char import SUP_TRANS
 from .utils.special_char import superscript as sup
 
 _SEP = re.compile(r'[/.·]')  # unit separator pattern
@@ -34,7 +34,7 @@ def _resolve_multi(symbol: str, sep: re.Pattern[str]) -> Compound[SingleUnit]:
     Raises:
         ValueError: If the symbol cannot be parsed into valid units.
     '''
-    symbol = sup2digit(symbol)
+    symbol = symbol.translate(SUP_TRANS)  # translate superscript to digit
     # split symbol into unit+exponent via separator
     unites = [unite for unite in sep.split(symbol)]
     expos = [1 if m is None else int(m.group()) for m in map(_NUM.search, unites)]
