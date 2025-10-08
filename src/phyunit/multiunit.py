@@ -3,10 +3,9 @@ from collections import Counter
 from fractions import Fraction
 from math import prod as float_product
 
-from ._data.units import BASE_SI, UNIT, UNIT_STD, UnitData
+from ._data.units import BASE_SI, UNIT_STD
 from .compound import Compound
-from .dimension import DIMENSIONLESS, Dimension
-from .exceptions import UnitOverwriteWarning
+from .dimension import Dimension
 from .singleunit import SingleUnit
 from .utils.iter_tools import neg_after
 from .utils.operator import inplace
@@ -80,24 +79,6 @@ class MultiUnit:
         if any(e < 0 for e in elements.values()):
             self._symbol += '/' + '·'.join(u.symbol + sup(-e) for u, e in elements.neg_items())
             self._name += '/' + '·'.join(u.name + sup(-e) for u, e in elements.neg_items())
-            
-    @classmethod
-    def register(cls, symbol: str, name: str | list[str], factor: float, 
-                 dimension: Dimension = DIMENSIONLESS, *,
-                 alias: None | str | list[str] = None, noprefix=False):
-        if _SEP.match(symbol) is not None:
-            raise ValueError(
-                f"'{symbol}' is not a valid single-unit symbol: "
-                "it contains unit separator characters (/, ., ·, space)."
-            )
-        if symbol in UNIT:
-            import warnings
-            warnings.warn(
-                f"'{symbol}' is already registered as a unit, "
-                f"overwriting it with the new definition.",
-                UnitOverwriteWarning
-            )
-        UNIT[symbol] = UnitData(factor, name, dimension, alias=alias, noprefix=noprefix)
         
     @classmethod
     def as_unit(cls, unit):
