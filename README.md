@@ -14,13 +14,17 @@ pip install phyunit
 ## Quickstart: sub-package `phyunit.SI`
 
 Sub-package `phyunit.SI` implements **SI unit** definitions, 
-from which you can import 2 very useful classes: 
+from which you can import many very useful classes: 
 
 |class|content|
 |:-|:-|
-|`phyunit.SI.SI`|SI physical constant|
-|`phyunit.SI.si`|SI unit|
-|`phyunit.SI.prefix`|SI unit prefix|
+|`phyunit.SI.SI`|physical constants in SI unit|
+|`phyunit.SI.si`|SI units|
+|`phyunit.SI.prefix`|SI unit prefixes|
+|`phyunit.SI.particle`|constants in particle physics|
+|`phyunit.SI.conversion.au`|atomic unit value in SI|
+|`phyunit.SI.conversion.nu`|natural unit value in SI|
+|`phyunit.SI.conversion.Planck`|Planck unit value in SI|
 
 ```python
 >>> from phyunit.SI import SI, si
@@ -44,6 +48,15 @@ Constant(299792458, m/s)
 
 >>> print(SI.me * SI.c**2)
 8.18710578796845e-14 kg·m²/s²
+```
+
+`particle` class contains constants in particle physics, it is separated from `SI` class for symbol and namespace clarity.
+
+```python
+>>> from phyunit.SI import particle
+
+>>> print(particle.mtau)
+3.16754e-27 kg
 ```
 
 ### `si`: SI unit class
@@ -74,6 +87,18 @@ class `prefix` contains prefix from _quetta-_ (_Q-_, = 10^30) to _quecto-_ (_q-_
 
 >>> prefix.Pi  # 2**50
 1125899906842624
+```
+
+### `conversion` module: `au`, `nu` and `Planck`
+
+Convert values in other unit system to SI unit,
+i.e. `au.length` is the atomic unit (a.u.) of length in SI unit.
+
+```python
+>>> from phyunit.SI.conversion import au
+
+>>> print(1 * au.length)  # 1 Bohr radius
+5.291772105437146e-11 m
 ```
 
 ## Tutorial: Define `phyunit.Quantity`
