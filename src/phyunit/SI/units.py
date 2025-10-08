@@ -80,8 +80,6 @@ class si(ConstClass):
     '''tesla, magnetic flux density'''
     H = Unit('H')
     '''henry, inductance'''
-    # celsius = Unit('°C')
-    # '''degree Celsius, temperature relative to 273.15 K'''
     lm = Unit('lm')
     '''lumen, luminous flux'''
     lx = Unit('lx')
@@ -97,6 +95,8 @@ class si(ConstClass):
 
     # other common unit
 
+    dB, B, mB = prefix_map('B', 'd m')
+    '''bel, logarithmic ratio'''
     min = Unit('min')
     '''minute, 1 min = 60 s, time'''
     h = Unit('h')
@@ -107,8 +107,18 @@ class si(ConstClass):
     '''simple year, 1 yr = 365 d, time'''
     a = Unit('a')
     '''Julian year, 1 yr = 365.25 d, time'''
+    angstrom = Unit('Å')
+    '''ångström, 1 Å = 10⁻¹⁰ m, length'''
+    au = Unit('au')
+    '''astronomical unit, length'''
+    pc = Unit('pc')
+    '''parsec, length'''
+    ly = Unit('ly')
+    '''light year, length'''
     mL, L = prefix_map('L', 'm ')
     '''liter/litre, 1 L = 1 dm³, volume'''
+    u = Unit('u')
+    '''atomic mass, 1 u = m(¹²C) / 12, mass'''
     bar = Unit('bar')
     '''bar, standard-state pressure'''
     atm = Unit('atm')
