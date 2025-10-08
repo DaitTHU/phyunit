@@ -28,65 +28,65 @@ class UnitData:
         factor (float): e.g., 1e-3 for 'gram'
         name (str | list[str]): e.g., 'meter', ['litre', 'liter']
         dimension (Dimension): e.g., length, time
-        alias (None | str | list[str]): Alternative symbols
-        system (str): e.g., 'SI', 'CGS'
-        noprefix (bool): Whether the unit should never be prefixed.
-        recommend (str | None): The recommended unit when this unit is deprecated.
-        SIbase (str | None): The base SI unit equivalent to, e.g., 'lux' for 'cd·sr/m²'.
+        system (enum.Flag): e.g., SI, CGS
+        noprefix (bool): Whether the unit should never be prefixed
+        log (bool): Whether the unit is logarithmic ratio
+        recommend (str | None): The recommended unit when the unit is deprecated
+        SIbase (str | None): SI base unit equivalent (e.g., 'cd·sr/m²' for 'lux')
     '''
 
-    __slots__ = ('factor', 'name', 'dimension',
-                 'alias', 'system', 'noprefix', 'recommend', 'SIbase')
+    __slots__ = ('factor', 'name', 'dimension', 'system', 'alter')
 
     def __init__(self, 
                  factor: float | Fraction, 
                  name: str | list[str],
                  dimension: Dimension = DIMENSIONLESS, *,
-                 alias: None | str | list[str] = None,
                  system: UnitSystem = UnitSystem.All,
-                 noprefix=False, recommend: str | None = None,
-                 SIbase: str | None = None
+                 **alternative_attribute
                 ) -> None:
         self.factor = factor
         self.name = [name] if isinstance(name, str) else name
         self.dimension = dimension
-        self.alias = [alias] if isinstance(alias, str) else alias
         self.system = system
-        self.noprefix = noprefix
-        self.recommend = recommend
-        self.SIbase = SIbase
+        self.alter = alternative_attribute
 
     def __hash__(self) -> int: return hash((self.factor, self.name[0]))
+
+    @property
+    def noprefix(self) -> bool: return self.alter.get('noprefix', False)
+    @property
+    def log(self) -> bool: return self.alter.get('log', False)
+    @property
+    def recommend(self) -> str | None: return self.alter.get('recommend')
+    @property
+    def SIbase(self) -> str | None: return self.alter.get('SIbase')
 
     def deprecation_warning(self):
         if self.recommend is None:
             return
         import warnings
         warnings.warn(
-            f"'{self.name}' is not deprecated, use '{self.recommend}' instead.",
-            UnitDeprecationWarning
+            f"'{self.name[0]}' is deprecated, use '{self.recommend}' instead.",
+            UnitDeprecationWarning, stacklevel=2
         )
-    
 
-_LOGARITHMIC_RATIO: dict[str, str] = {
-    'Np': 'neper',
-    'B': 'bel',
-}
 
 BASE_SI = ('s', 'm', 'kg', 'A', 'K', 'mol', 'cd')
 
-# unit library, classified by dimension, internal use only in this file
-__UNIT_LIB: dict[Dimension, dict[str, UnitData]] = {
+# unit library, classified by dimension, internal use only
+__UNIT_LIB: dict[Dimension, dict[str | tuple[str, ...], UnitData]] = {
     DimensionConst.DIMENSIONLESS: {
         '': UnitData(1, ''),
         'rad': UnitData(1, 'radian'),
         'sr': UnitData(1, 'steradian'),
         '°': UnitData(Math.DEGREE, 'degree', noprefix=True),
-        '′': UnitData(Math.ARCMIN, 'arcminute', alias="'", noprefix=True),  # chr(0x2032): chr(0x27)
-        '″': UnitData(Math.ARCSEC, 'arcsecond', alias='"', noprefix=True),  # chr(0x2033): chr(0x22)
-        '%': UnitData(1e-2, 'percent', alias='٪', noprefix=True),  # chr(0x25): chr(0x66A)
+        ('′', "'"): UnitData(Math.ARCMIN, 'arcminute', noprefix=True),  # chr(0x2032), chr(0x27)
+        ('″', '"'): UnitData(Math.ARCSEC, 'arcsecond', noprefix=True),  # chr(0x2033), chr(0x22)
+        ('%', '٪'): UnitData(1e-2, 'percent', noprefix=True),  # chr(0x25), chr(0x66A)
         '‰': UnitData(1e-3, 'permille', noprefix=True),
         '‱': UnitData(1e-4, ['permyriad', 'per ten thousand'], noprefix=True),
+        ('B', 'b'): UnitData(1, 'bel', log=True),
+        'Np': UnitData(1, 'neper', log=True),
     },
     DimensionConst.TIME: {
         's': UnitData(1, 'second'),
@@ -99,15 +99,15 @@ __UNIT_LIB: dict[Dimension, dict[str, UnitData]] = {
     DimensionConst.LENGTH: {
         'm': UnitData(1, ['metre', 'meter']),
         'fm': UnitData(1e-15, 'fermi', noprefix=True),  # femtometer
-        'Å': UnitData(1e-10, ['ångström', 'angstrom'], alias=['Å', 'Å']),  # chr(0xC5): [chr(0x212B), 'A'+chr(0x30A)]
-        'au': UnitData(Physic.AU, 'astronomical unit', alias='AU'),
+        ('Å', 'Å', 'Å'): UnitData(1e-10, ['ångström', 'angstrom']),  # chr(0xC5), chr(0x212B), 'A'+chr(0x30A)
+        ('au', 'AU'): UnitData(Physic.AU, 'astronomical unit'),
         'pc': UnitData(Physic.PC, 'parsec'),
         'ly': UnitData(Physic.LIGHT_YEAR, 'light year'),
     },
     DimensionConst.MASS: {
         'g': UnitData(1e-3, 'gram'),
         't': UnitData(1000, ['tonne', 'ton']),
-        'u': UnitData(Physic.DALTON, 'amu'),
+        'u': UnitData(Physic.DALTON, 'unified atomic mass unit'),
         'Da': UnitData(Physic.DALTON, 'dalton'),
     },
     DimensionConst.ELECTRIC_CURRENT: {
@@ -115,8 +115,8 @@ __UNIT_LIB: dict[Dimension, dict[str, UnitData]] = {
     },
     DimensionConst.THERMODYNAMIC_TEMPERATURE: {
         'K': UnitData(1, 'kelvin'),
-        '°C': UnitData(1, 'degree Celsius', alias='℃', noprefix=True),
-        '°F': UnitData(Fraction(5, 9), 'degree Fahrenheit', alias='℉', noprefix=True),
+        ('°C', '℃'): UnitData(1, 'degree Celsius', noprefix=True),
+        ('°F', '℉'): UnitData(Fraction(5, 9), 'degree Fahrenheit', noprefix=True),
         '°R': UnitData(Fraction(9, 5), 'degree Rankine', noprefix=True)
     },
     DimensionConst.AMOUNT_OF_SUBSTANCE: {
@@ -129,7 +129,7 @@ __UNIT_LIB: dict[Dimension, dict[str, UnitData]] = {
     # derived
     DimensionConst.FREQUENCY: {
         'Hz': UnitData(1, 'hertz'),
-        'cps': UnitData(1, 'cycles per second'),
+        'cps': UnitData(1, 'cycles per second', recommend='s⁻¹'),
         'Bq': UnitData(1, 'becquerel'),
         'Ci': UnitData(3.7e10, 'curie', recommend='Bq'),
         'Rd': UnitData(1e6, 'rutherford', recommend='Bq'),
@@ -142,7 +142,7 @@ __UNIT_LIB: dict[Dimension, dict[str, UnitData]] = {
         'ha': UnitData(10000, 'hectare', noprefix=True),
     },
     DimensionConst.VOLUME: {
-        'L': UnitData(1e-3, ['litre', 'liter'], alias='l'),
+        ('L', 'l'): UnitData(1e-3, ['litre', 'liter']),
     },
     DimensionConst.VELOCITY: {
         'c': UnitData(Physic.C, 'speed of light', noprefix=True),
@@ -160,7 +160,7 @@ __UNIT_LIB: dict[Dimension, dict[str, UnitData]] = {
         'bar': UnitData(Physic.SSP, 'bar'),
         'atm': UnitData(Physic.ATM, 'standard atmosphere'),
         'mHg': UnitData(Physic.MMHG * 1000, 'meter of mercury'),
-        'Torr': UnitData(Physic.MMHG, 'torr'),  # Torricelli
+        'Torr': UnitData(Physic.MMHG, ['torr', 'torricelli']),
         'Ba': UnitData(0.1, 'barye', system=UnitSystem.CGS),
     },
     DimensionConst.ENERGY: {
@@ -172,7 +172,7 @@ __UNIT_LIB: dict[Dimension, dict[str, UnitData]] = {
     },
     DimensionConst.POWER: {
         'W': UnitData(1, 'watt'),
-        'var': UnitData(1, 'volt-ampere reactive', alias=['VAR', 'VAr']),
+        ('var', 'VAR', 'VAr'): UnitData(1, 'volt-ampere reactive'),
         'VA': UnitData(1, 'volt-ampere'),
         'statW': UnitData(1, 'statwatt', system=UnitSystem.ESU),
     },
@@ -211,7 +211,7 @@ __UNIT_LIB: dict[Dimension, dict[str, UnitData]] = {
         'G': UnitData(1e-4, 'gauss', system=UnitSystem.Gaussian),
     },
     DimensionConst.MAGNETIC_FIELD_STRENGTH: {
-        'Oe': UnitData(1, 'oersted', system=UnitSystem.Gaussian),
+        'Oe': UnitData(1, ['oersted', 'ørsted'], system=UnitSystem.Gaussian),
     },
     DimensionConst.INDUCTANCE: {
         'H': UnitData(1, 'henry'),
@@ -225,7 +225,7 @@ __UNIT_LIB: dict[Dimension, dict[str, UnitData]] = {
     DimensionConst.KERMA: {
         'Gy': UnitData(1, 'gray'),
         'Sv': UnitData(1, 'sievert'),
-        'rem': UnitData(0.01, 'Roentgen-equivalent-man', recommend='Sv')
+        'rem': UnitData(0.01, 'roentgen equivalent man', recommend='Sv')
     },
     DimensionConst.EXPOSURE: {
         'R': UnitData(2.58e-4, 'roentgen', recommend='C/kg'),
@@ -245,7 +245,7 @@ for dim, unit_dict in __UNIT_LIB.items():
 
 # concatenate all dict in __UNIT_LIB
 UNIT: dict[str, UnitData] = {
-    unit: data
+    unit[0] if isinstance(unit, tuple) else unit: data
     for unit_dict in __UNIT_LIB.values()
     for unit, data in unit_dict.items()
 }
@@ -257,8 +257,10 @@ UNIT_NAME: dict[str, str] = {
 '''unit {name: symbol}'''
 
 UNIT_ALIAS = {
-    alias: unit for unit, data in UNIT.items() if data.alias is not None
-    for alias in data.alias
+    alias: unit[0]
+    for unit_dict in __UNIT_LIB.values()
+    for unit in unit_dict
+    for alias in unit[1:] if isinstance(unit, tuple)
 }
 '''unit {alias symbol: symbol}'''
 
