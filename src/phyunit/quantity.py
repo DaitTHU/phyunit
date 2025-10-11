@@ -22,13 +22,13 @@ class Unit(MultiUnit):
 
     def __rtruediv__(self, other):
         '''other is not `Unit` or `Quantity`, treated as value / unit.'''
-        return Quantity(other, self.inverse())
+        return Quantity(other, self.inv)
 
     def __array_ufunc__(self, ufunc, method, *inputs, **kwargs):
         if ufunc == np.multiply:
             return Quantity(inputs[0], self)
         if ufunc == np.true_divide:
-            return Quantity(inputs[0], self.inverse())
+            return Quantity(inputs[0], self.inv)
         return NotImplemented
 
 
@@ -45,7 +45,7 @@ class Constant(Generic[T]):
     
     def __init__(self, value: T, /, unit: str | Unit = UNITLESS):
         self._value = value
-        self._unit = Unit.as_unit(unit)
+        self._unit = Unit.ensure(unit)
         
     @property
     def value(self) -> T: return self._value
@@ -89,7 +89,7 @@ class Constant(Generic[T]):
         
         If strict is True, the unit must have the same dimension.
         '''
-        unit = Unit.as_unit(new_unit)
+        unit = Unit.ensure(new_unit)
         if strict and unit.dimension != self.unit.dimension:
             raise ValueError(f"Cannot convert '{self.unit}' to '{unit}':"
                              f" dimension {self.dimension} != {unit.dimension}.")
@@ -210,7 +210,7 @@ class Constant(Generic[T]):
         # rop: other is not a `Constant` object.
         if op is operator.truediv:
             def __rop(self: 'Constant', other):
-                return Quantity(op(other, self._value), self.unit.inverse())
+                return Quantity(op(other, self._value), self.unit.inv)
         else:
             def __rop(self: 'Constant', other):
                 return Quantity(op(other, self._value), self.unit)
@@ -283,7 +283,7 @@ class Constant(Generic[T]):
             elif ufunc_name == 'true_divide':
                 unit = units[0] / units[1]
             elif ufunc_name == 'reciprocal':
-                unit = units[0].inverse()
+                unit = units[0].inv
             elif ufunc_name == 'sqrt':
                 unit = units[0].root(2)
             elif ufunc_name == 'cbrt':
@@ -339,7 +339,7 @@ class Quantity(Constant[T]):
     @property
     def unit(self) -> Unit: return self._unit
     @unit.setter
-    def unit(self, unit: str | Unit): self._unit = Unit.as_unit(unit)
+    def unit(self, unit: str | Unit): self._unit = Unit.ensure(unit)
     @property
     def dimension(self) -> Dimension: return self._unit.dimension
     @property
@@ -365,15 +365,11 @@ class Quantity(Constant[T]):
         If inplace is True, the original object will be modified.
         If strict is True, the unit must have the same dimension.
         '''
-        unit = Unit.as_unit(new_unit)
+        unit = Unit.ensure(new_unit)
         if strict and unit.dimension != self.unit.dimension:
             raise ValueError(f"Cannot convert {self.unit} to {unit}:"
                              f" dimension mismatch {self.dimension} != {unit.dimension}.")
         return self.__to(unit, inplace)
-
-    def ito(self, new_unit: str | Unit, *, strict=True):
-        '''inplace unit conversion.'''
-        return self.to(new_unit, inplace=True, strict=strict)
 
     def deprefix_unit(self, *, inplace=False):
         return self.to(self.unit.deprefix(), inplace=inplace)

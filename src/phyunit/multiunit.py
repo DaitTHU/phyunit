@@ -53,7 +53,10 @@ class MultiUnit:
     
     __slots__ = ('_elements', '_dimension', '_factor', '_symbol', '_name')
     
-    def __init__(self, symbol: str, /):
+    def __init__(self, symbol: str = '', /):
+        """
+        TODO: cache for simple units.
+        """
         if not isinstance(symbol, str):
             raise TypeError(f"{type(symbol)=} is not 'str''.")
         try:
@@ -81,8 +84,16 @@ class MultiUnit:
             self._name += '/' + '·'.join(u.name + sup(-e) for u, e in elements.neg_items())
         
     @classmethod
-    def as_unit(cls, unit):
-        '''transform a str/Unit object to a Unit object.'''
+    def ensure(cls, unit):
+        """
+        ensure the output is a Unit instance, as the input can be str or Unit.
+        Args:
+            unit (str | Unit): the unit to ensure.
+        Returns:
+            Unit: the ensured Unit instance.
+        Raises:
+            TypeError: if the input is neither str nor Unit.
+        """
         if isinstance(unit, cls):
             return unit
         if isinstance(unit, str):
@@ -99,7 +110,8 @@ class MultiUnit:
     def name(self) -> str: return self._name
     
     def __repr__(self) -> str:
-        return f'{self.__class__.__name__}({repr(self.symbol)})'
+        symbol = None if self.symbol == '' else repr(self.symbol)
+        return f'{self.__class__.__name__}({symbol})'
 
     def __str__(self) -> str: return self.symbol
 
@@ -178,7 +190,8 @@ class MultiUnit:
                 elements[SingleUnit(symbol)] += e
         return self._move(elements)
 
-    def inverse(self): return self._move(-self._elements)
+    @property
+    def inv(self): return self._move(-self._elements)
 
     def __mul__(self, other):
         if not isinstance(other, MultiUnit):
