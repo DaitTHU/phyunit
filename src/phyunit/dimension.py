@@ -96,7 +96,8 @@ class Dimension:
         M = self.M + I / 2
         return self.__class__(T, L, M, 0, self.Theta, self.N, self.J)
 
-    def inverse(self):
+    @property
+    def inv(self):
         '''inverse of the Dimension.'''
         if self is DIMENSIONLESS:
             return self
@@ -128,7 +129,7 @@ class Dimension:
         if one != 1:
             raise ValueError(
                 'Only 1 or Dimension object can divide Dimension object.')
-        return self.inverse()
+        return self.inv
 
     def root(self, n: int | float | Fraction):
         '''inverse operation of power.'''
@@ -145,6 +146,19 @@ class Dimension:
         for dim in dims:
             start *= dim
         return start
+    
+    def corresponding_quantity(self):
+        """
+        return the corresponding physical quantity names of the dimension.
+        If not found, return None.
+
+        >>> Dimension(T=1, L=1).corresponding_quantity()
+        ('velocity', 'speed')
+        >>> Dimenesion(T=-3, L=1).corresponding_quantity()
+        None
+        """
+        from .dimensionconst import _CORR_QUANTITY
+        return _CORR_QUANTITY.get(self)
 
 
 DIMENSIONLESS = Dimension()

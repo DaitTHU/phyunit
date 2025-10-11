@@ -5,32 +5,45 @@ __all__ = ['Dimension', 'DIMENSIONLESS']
 
 
 class Dimension:
-    '''`Dimension` is like a 7-len `namedtuple`, the field is
-    - `T`: time
-    - `L`: length
-    - `M`: mass
-    - `I`: electric current
-    - `Theta`: thermodynamic temperature (ASCII substitute for Greek letter `Θ`)
-    - `N`: amount of substance
-    - `J`: luminous intensity
+    """
+    implementation of physical dimension defined by SI.
 
-    It's a kind of immutable sequence.
+    | symbol  |         dimension         |
+    |:-------:|:-------------------------:|
+    |   `T`   |           time            |
+    |   `L`   |          length           |
+    |   `M`   |           mass            |
+    |   `I`   |     electric current      |
+    | `Theta` | thermodynamic temperature |
+    |   `N`   |    amount of substance    |
+    |   `J`   |    luminous intensity     |
+
+    `Theta` is the ASCII substitute for Greek letter `Θ`.
+
+    `Dimension` is like a 7-len `namedtuple` of `Fraction`.
+
+    Construct
+    ---
+    see `__init__` docstring. Very straightforward.
+    >>> time_dim = Dimension(T=1)
+    >>> vilocity_dim = Dimension(-1, 1)
+    >>> force_dim = Dimension(*[-2, 1, 1])
 
     Get base quantity
     ---
     You can get base quantity property like mass by index, initial
     or fullname.
-    >>> force_dim[0]        # T: -2
+    >>> force_dim[0]        # -2 (Time property)
     >>> force_dim.M         # 1
     >>> force_dim.length    # 1
 
     Operation
     ---
     very straight-forward:
-    >>> force_dim.inverse()                     # T⁻²LM
+    >>> force_dim.inv                           # T⁻²LM
     >>> power_dim = force_dim * vilocity_dim    # T⁻³L²M
     >>> vilocity_dim**2                         # T⁻²L²
-    '''
+    """
 
     def __init__(self, T=0, L=0, M=0, I=0, Theta=0, N=0, J=0) -> None:
         '''construct a `Dimension` object using 7 int/Fraction arguments,
@@ -89,7 +102,8 @@ class Dimension:
     def iskinematic(self) -> bool: ...
     def isdynamic(self) -> bool: ...
     def asGaussian(self) -> Self: ...
-    def inverse(self) -> Self: ...
+    @property
+    def inv(self) -> Self: ...
     def __mul__(self, other: Dimension) -> Self: ...
     def __truediv__(self, other: Dimension) -> Self: ...
     def __imul__(self, other: Dimension) -> Self: ...
@@ -100,6 +114,7 @@ class Dimension:
     def root(self, n: int | Fraction) -> Self: ...
     @staticmethod
     def product(dim_iter: Iterable[Dimension]) -> Dimension: ...
+    def corresponding_quantity(self) -> tuple[str] | None: ...
 
 
 DIMENSIONLESS: Dimension
