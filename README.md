@@ -147,22 +147,22 @@ You can directly operate on `numpy.ndarray` with units.
 
 `phyunit` is also compatible with `matplotlib`.
 
-Note that `phyunit.Quantity` as a parameter in `pyplot.plot()` is actually its `value` property.
-
 ```python
 import numpy as np
 from matplotlib import pyplot as plt
 from phyunit.SI import SI, si
 
-lam = np.linspace(0.01, 5, 100)[:, None] * si.um  # wavelength
-T = np.array([3000, 4000, 5000])[None, :] * si.K  # temperature
+lam = np.linspace(0.01, 3, 100)[:, None] * si.um  # wavelength
+T = np.array([3000, 4000, 5000], dtype=np.float64) * si.K  # temperature
 
 nu = SI.c / lam  # frequency
-I = 2 * SI.h * SI.c**2 / (lam**5 * (np.exp(SI.h * nu / (SI.kB * T)) - 1))  # intensity
+I = 2 * SI.h * SI.c**2 / (lam**5 * np.expm1(SI.h * nu / (SI.kB * T)))  # intensity
+I.to('W/m3/sr', inplace=True)
 
-plt.plot(lam, I)  # same as `plt.plot(lam.value, I.value)`
-plt.xlabel('Wavelength [um]')
-plt.ylabel('Intensity [W/m^3/sr]')
+plt.plot(lam, I)
+plt.xlabel(f'Wavelength [{lam.unit}]')
+plt.ylabel(f'Intensity [{I.unit}]')
+plt.legend([f'T = {T[i]:n}' for i in range(T.value.size)])
 plt.title('Blackbody Radiation')
 plt.show()
 ```
