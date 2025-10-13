@@ -62,9 +62,9 @@ class SingleUnit:
     @property
     def symbol(self) -> str: return self.prefix + self.unit
     @property
-    def prefix_name(self) -> str: return PREFIX[self.prefix].name[0]
+    def prefix_name(self) -> str: return PREFIX[self.prefix].name
     @property
-    def unit_name(self) -> str: return UNIT[self.unit].name[0]
+    def unit_name(self) -> str: return UNIT[self.unit].name
     @property
     def name(self) -> str: return self.prefix_name + self.unit_name
     @property

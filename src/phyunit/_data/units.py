@@ -32,10 +32,9 @@ class UnitData:
         noprefix (bool): Whether the unit should never be prefixed
         log (bool): Whether the unit is logarithmic ratio
         recommend (str | None): The recommended unit when the unit is deprecated
-        SIbase (str | None): SI base unit equivalent (e.g., 'cd·sr/m²' for 'lux')
     '''
 
-    __slots__ = ('factor', 'name', 'dimension', 'system', 'alter')
+    __slots__ = ('factor', 'names', 'dimension', 'system', 'alter')
 
     def __init__(self, 
                  factor: float | Fraction, 
@@ -45,28 +44,28 @@ class UnitData:
                  **alternative_attribute
                 ) -> None:
         self.factor = factor
-        self.name = [name] if isinstance(name, str) else name
+        self.names = [name] if isinstance(name, str) else name
         self.dimension = dimension
         self.system = system
         self.alter = alternative_attribute
 
-    def __hash__(self) -> int: return hash((self.factor, self.name[0]))
+    def __hash__(self) -> int: return hash((self.factor, self.name))
 
+    @property
+    def name(self) -> str: return self.names[0]
     @property
     def noprefix(self) -> bool: return self.alter.get('noprefix', False)
     @property
     def log(self) -> bool: return self.alter.get('log', False)
     @property
     def recommend(self) -> str | None: return self.alter.get('recommend')
-    @property
-    def SIbase(self) -> str | None: return self.alter.get('SIbase')
 
     def deprecation_warning(self):
         if self.recommend is None:
             return
         import warnings
         warnings.warn(
-            f"'{self.name[0]}' is deprecated, use '{self.recommend}' instead.",
+            f"'{self.name}' is deprecated, use '{self.recommend}' instead.",
             UnitDeprecationWarning, stacklevel=2
         )
 
@@ -98,7 +97,6 @@ __UNIT_LIB: dict[Dimension, dict[str | tuple[str, ...], UnitData]] = {
     },
     DimensionConst.LENGTH: {
         'm': UnitData(1, ['metre', 'meter']),
-        'fm': UnitData(1e-15, 'fermi', noprefix=True),  # femtometer
         ('Å', 'Å', 'Å'): UnitData(1e-10, ['ångström', 'angstrom']),  # chr(0xC5), chr(0x212B), 'A'+chr(0x30A)
         ('au', 'AU'): UnitData(Physic.AU, 'astronomical unit'),
         'pc': UnitData(Physic.PC, 'parsec'),
@@ -107,8 +105,7 @@ __UNIT_LIB: dict[Dimension, dict[str | tuple[str, ...], UnitData]] = {
     DimensionConst.MASS: {
         'g': UnitData(1e-3, 'gram'),
         't': UnitData(1000, ['tonne', 'ton']),
-        'u': UnitData(Physic.DALTON, 'unified atomic mass unit'),
-        'Da': UnitData(Physic.DALTON, 'dalton'),
+        ('u', 'Da'): UnitData(Physic.DALTON, ['unified atomic mass unit', 'dalton']),
     },
     DimensionConst.ELECTRIC_CURRENT: {
         'A': UnitData(1, 'ampere'),
@@ -124,7 +121,7 @@ __UNIT_LIB: dict[Dimension, dict[str | tuple[str, ...], UnitData]] = {
     },
     DimensionConst.LUMINOUS_INTENSITY: {
         'cd': UnitData(1, 'candela'),
-        'lm': UnitData(1, 'lumen', SIbase='cd·sr'),  # luminous flux
+        'lm': UnitData(1, 'lumen'),  # luminous flux, lm = cd·sr
     },
     # derived
     DimensionConst.FREQUENCY: {
@@ -174,7 +171,7 @@ __UNIT_LIB: dict[Dimension, dict[str | tuple[str, ...], UnitData]] = {
         'W': UnitData(1, 'watt'),
         ('var', 'VAR', 'VAr'): UnitData(1, 'volt-ampere reactive'),
         'VA': UnitData(1, 'volt-ampere'),
-        'statW': UnitData(1, 'statwatt', system=UnitSystem.ESU),
+        'statW': UnitData(1e-7, 'statwatt', system=UnitSystem.ESU),
     },
     DimensionConst.DYNAMIC_VISCOSITY: {
         'P': UnitData(0.1, 'poise', system=UnitSystem.CGS),
@@ -217,7 +214,7 @@ __UNIT_LIB: dict[Dimension, dict[str | tuple[str, ...], UnitData]] = {
         'H': UnitData(1, 'henry'),
     },
     DimensionConst.ILLUMINANCE: {
-        'lx': UnitData(1, 'lux', SIbase='cd·sr/m²'),  # illuminance [lm/m²]
+        'lx': UnitData(1, 'lux'),  # illuminance [lm/m²]
         'nt': UnitData(1, 'nit'),  # luminance [cd/m²]
         'sb': UnitData(10000, 'stilb', system=UnitSystem.CGS),  # luminance [cd/cm²]
         'ph': UnitData(10000, 'phot', system=UnitSystem.CGS),  # illuminance [lm/cm²]
@@ -239,7 +236,7 @@ __UNIT_LIB: dict[Dimension, dict[str | tuple[str, ...], UnitData]] = {
 for dim, unit_dict in __UNIT_LIB.items():
     for basedata in unit_dict.values():
         if basedata.system is UnitSystem.Gaussian:
-            basedata.dimension = dim.asGaussian()
+            basedata.dimension = dim.as_Gaussian()
         else:
             basedata.dimension = dim
 
@@ -252,7 +249,7 @@ UNIT: dict[str, UnitData] = {
 '''unit {symbol: data}'''
 
 UNIT_NAME: dict[str, str] = {
-    name: unit for unit, data in UNIT.items() for name in data.name
+    name: unit for unit, data in UNIT.items() for name in data.names
 }
 '''unit {name: symbol}'''
 
@@ -263,6 +260,11 @@ UNIT_ALIAS = {
     for alias in unit[1:] if isinstance(unit, tuple)
 }
 '''unit {alias symbol: symbol}'''
+
+UNIT_SPECIAL: dict[str, tuple[str, str]] = {
+    'fermi': ('f', 'm'),  # femtometer
+    'micron': ('µ', 'm'),  # micrometer, chr(0xB5)
+}
 
 
 # unit standard, every dimension has one SI basic/standard unit

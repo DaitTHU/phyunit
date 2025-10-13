@@ -9,13 +9,16 @@ class PrefixData:
         name (str | list[str]): e.g., 'kilo', 'mega'
     '''
 
-    __slots__ = ('factor', 'name')
+    __slots__ = ('factor', 'names')
 
     def __init__(self, factor: float, name: str | list[str]) -> None:
         self.factor = factor
-        self.name = [name] if isinstance(name, str) else name
+        self.names = [name] if isinstance(name, str) else name
 
-    def __hash__(self) -> int: return hash((self.factor, self.name[0]))
+    @property
+    def name(self) -> str: return self.names[0]
+
+    def __hash__(self) -> int: return hash((self.factor, self.name))
 
 
 __PREFIX_LIB: dict[str | tuple[str, ...], PrefixData] = {
@@ -55,7 +58,7 @@ PREFIX = {
 '''prefix {symbol: data}'''
 
 PREFIX_NAME: dict[str, str] = {
-    name: prefix for prefix, data in PREFIX.items() for name in data.name
+    name: prefix for prefix, data in PREFIX.items() for name in data.names
 }
 '''prefix {name: symbol}'''
 
