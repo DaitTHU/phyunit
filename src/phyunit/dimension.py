@@ -2,7 +2,7 @@ from fractions import Fraction
 from typing import Iterable, SupportsIndex
 
 from .utils.number import common_fraction
-from .utils.operator import inplace, xnor
+from .utils.operator import inplace
 from .utils.special_char import superscript
 
 _VARIABLE = ('T', 'L', 'M', 'I', 'Theta', 'N', 'J')
@@ -25,7 +25,7 @@ class Dimension:
         obj.__vector = tuple(vector)
         return obj
 
-    def astuple(self): return self.__vector
+    def as_tuple(self): return self.__vector
 
     def __getitem__(self, key: SupportsIndex | str):
         if isinstance(key, str):
@@ -50,7 +50,7 @@ class Dimension:
         return '{}({})'.format(self.__class__.__name__, para)
 
     def __str__(self) -> str:
-        if self.isdimensionless():
+        if self.is_dimensionless():
             return '1'
         return ''.join(s + superscript(v) for s, v in zip(_SYMBOL, self) if v)
 
@@ -63,37 +63,55 @@ class Dimension:
             return NotImplemented
         return self.__vector == other.__vector
 
-    def isdimensionless(self):
+    def is_dimensionless(self):
         '''all dimension is zero.'''
         return self is DIMENSIONLESS or all(v == 0 for v in self)
 
-    def iscomposedof(self, *composition: str) -> bool:
+    def components(self) -> set[str]:
         '''
-        check if a dimension is composed of the compostion.
+        return the composition of the dimension.
 
-        >>> Dimension(T=1, M=-2).iscomposedof('T', 'M')
+        >>> Dimension(T=1, M=-2).components()
+        {'T', 'M'}
+        '''
+        return {s for v, s in zip(self, _VARIABLE) if v}
+
+    def is_geometric(self):
+        '''components only L != 0.'''
+        return self.components() == {'L'}
+
+    def is_kinematic(self):
+        '''components only T and L != 0.'''
+        return self.components() == {'T', 'L'}
+
+    def is_dynamic(self):
+        '''components only T, L and M != 0'''
+        return self.components() == {'T', 'L', 'M'}
+
+    def __contains__(self, dim: str) -> bool:
+        '''
+        check if the dimension contains the base dimension.
+
+        Example
+        ---
+        >>> 'L' in Dimension(L=1, T=-1)
         True
+        >>> 'M' in Dimension(L=1, T=-1)
+        False
+        >>> 'X' in Dimension(L=1, T=-1)
+        ValueError: 'X' is not a base dimension symbol.
         '''
-        return all(xnor(v != 0, s in composition) for v, s in zip(self, _VARIABLE))
+        if not isinstance(dim, str):
+            raise TypeError(f"{type(dim) = } is not 'str'.")
+        if dim not in _DICT:
+            raise ValueError(f"'{dim}' is not a base dimension symbol.")
+        return self.__vector[_DICT[dim]] != 0
 
-    def isgeometric(self):
-        '''only L != 0.'''
-        return self.iscomposedof('L')
-
-    def iskinematic(self):
-        '''only T and L != 0.'''
-        return self.iscomposedof('T', 'L')
-
-    def isdynamic(self):
-        '''only T, L and M != 0'''
-        return self.iscomposedof('T', 'L', 'M')
-
-    def asGaussian(self):
+    def as_Gaussian(self):
         '''Gaussian unit system: 1 statC = 1 g¹ᐟ²·cm³ᐟ²/s'''
-        I = self.I
-        T = self.T - I
-        L = self.L + I * 3 / 2
-        M = self.M + I / 2
+        T = self.T - self.I
+        L = self.L + self.I * 3 / 2
+        M = self.M + self.I / 2
         return self.__class__(T, L, M, 0, self.Theta, self.N, self.J)
 
     @property

@@ -46,12 +46,12 @@ class SingleUnit:
 
     __slots__ = ('_unit', '_prefix')
 
-    def __init__(self, symbol: str):
+    def __init__(self, symbol: str, /):
         if not isinstance(symbol, str):
             raise TypeError(f"{type(symbol)=} is not 'str''.")
         self._prefix, self._unit = _resolve_single(symbol)
         UNIT[self._unit].deprecation_warning()
-          
+
     @classmethod
     def _move(cls, prefix: str, unit: str):
         obj = super().__new__(cls)
@@ -80,22 +80,20 @@ class SingleUnit:
     def dimension(self): return UNIT[self.unit].dimension
 
     def deprefix(self):
-        return self if self.hasnoprefix() else SingleUnit._move('', self._unit)
+        return SingleUnit._move('', self._unit) if self.has_prefix() else self
 
-    def hasnoprefix(self) -> bool: return self.prefix == ''
+    def has_prefix(self) -> bool: return self.prefix != ''
 
-    def hasprefix(self) -> bool: return self.prefix != ''
+    def is_prefix(self) -> bool: return self.unit == '' and self.prefix != ''
 
-    def isprefix(self) -> bool: return self.unit == '' and self.prefix != ''
-    
     def __repr__(self) -> str: return f'{self.__class__.__name__}({self.symbol})'
 
     def __str__(self) -> str: return self.symbol
 
     def __hash__(self) -> int: return hash((self.prefix, self.unit))
-    
+
     def __eq__(self, other: object) -> bool:
         if not isinstance(other, SingleUnit):
             return NotImplemented
         return self.prefix == other.prefix and self.unit == other.unit
-    
+

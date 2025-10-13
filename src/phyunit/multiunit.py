@@ -6,11 +6,16 @@ from math import prod as float_product
 from ._data.units import BASE_SI, UNIT_STD
 from .compound import Compound
 from .dimension import Dimension
-from .singleunit import SingleUnit
+from .singleunit import SingleUnit, UnitSymbolError
 from .utils.iter_tools import neg_after
 from .utils.operator import inplace
 from .utils.special_char import SUP_TRANS
 from .utils.special_char import superscript as sup
+
+_UNIT_STD = {d: SingleUnit(s) for d, s in UNIT_STD.items()}
+_UNIT_SI = tuple(u for u in _UNIT_STD.values() if u.symbol in BASE_SI)
+ONE, TWO = Fraction(1), Fraction(2)
+_SIMPLE_EXPONENT = (ONE, -ONE, TWO, -TWO)
 
 _SEP = re.compile(r'[/.·]')  # unit separator pattern
 _SEPS = re.compile(r'[/.· ]')  # unit separator pattern with space
@@ -50,9 +55,9 @@ def _resolve_multi(symbol: str, sep: re.Pattern[str]) -> Compound[SingleUnit]:
 
 
 class MultiUnit:
-    
+
     __slots__ = ('_elements', '_dimension', '_factor', '_symbol', '_name')
-    
+
     def __init__(self, symbol: str = '', /):
         """
         TODO: cache for simple units.
@@ -71,6 +76,10 @@ class MultiUnit:
         obj.__derive_properties(elements)
         return obj
     
+    @classmethod
+    def _move_dict(cls, elements: dict[SingleUnit, Fraction], /):
+        return cls._move(Compound._move(elements))  # type: ignore
+
     def __derive_properties(self, elements: Compound[SingleUnit]):
         '''derive properties from the elements.'''
         self._elements = elements
@@ -82,7 +91,18 @@ class MultiUnit:
         if any(e < 0 for e in elements.values()):
             self._symbol += '/' + '·'.join(u.symbol + sup(-e) for u, e in elements.neg_items())
             self._name += '/' + '·'.join(u.name + sup(-e) for u, e in elements.neg_items())
-        
+
+    @classmethod
+    def from_dimension(cls, dimension: Dimension, /):
+        """
+        Create a combination of base SI units with the same dimension.
+
+        Example: for dimension of force, the unit is 'm·kg/s²' (newton in SI base units).
+        """
+        if not isinstance(dimension, Dimension):
+            raise TypeError(f"{type(dimension) = } is not 'Dimension'.")
+        return cls._move_dict({u: e for u, e in zip(_UNIT_SI, dimension) if e})
+
     @classmethod
     def ensure(cls, unit):
         """
@@ -99,7 +119,7 @@ class MultiUnit:
         if isinstance(unit, str):
             return cls(unit)
         raise TypeError(f"Unit must be 'str' or '{cls}', not '{type(unit)}'.")
-    
+
     @property
     def dimension(self) -> Dimension: return self._dimension
     @property
@@ -108,7 +128,7 @@ class MultiUnit:
     def symbol(self) -> str: return self._symbol
     @property
     def name(self) -> str: return self._name
-    
+
     def __repr__(self) -> str:
         symbol = None if self.symbol == '' else repr(self.symbol)
         return f'{self.__class__.__name__}({symbol})'
@@ -122,29 +142,62 @@ class MultiUnit:
             return NotImplemented
         return self.dimension == other.dimension and self.factor == other.factor
 
-    def sameas(self, other) -> bool:
-        if not isinstance(other, MultiUnit):
-            return NotImplemented
-        return self._elements == other._elements
+    def is_dimensionless(self) -> bool: return self.dimension.is_dimensionless()
+
+    def is_single(self) -> bool: return len(self._elements) <= 1
+
+    def is_multiple(self) -> bool: return len(self._elements) > 1
+
+    def has_prefix(self) -> bool: 
+        return any(unit.has_prefix() for unit in self._elements)
     
-    def isdimensionless(self) -> bool: return self.dimension.isdimensionless()
+    def components(self):
+        return tuple(self._move_dict({u: ONE}) for u in self._elements)
+
+    def __contains__(self, unit: 'str | MultiUnit') -> bool:
+        """
+        if a single unit is contained in this unit.
+
+        Example
+        ---
+        >>> 'm' in Unit('m/s')
+        True
+        >>> Unit('s') in Unit('m/s')
+        True
+        >>> Unit('kg') in Unit('m/s')
+        False
+        >>> Unit('m²') in Unit('m/s')
+        True
+        >>> Unit('m/s') in Unit('m/s')
+        ValueError: 'm/s' is not a single unit.
+        """
+        if not isinstance(unit, (str, MultiUnit)):
+            raise TypeError(f"{type(unit) = } is not 'str' or 'Unit'.")
+        if isinstance(unit, str):
+            try:
+                return SingleUnit(unit) in self._elements
+            except UnitSymbolError:
+                unit = MultiUnit(unit)
+        if unit.is_multiple():
+            raise ValueError(f"'{unit}' is not a single unit.")
+        return all(u in self._elements for u in unit._elements)
 
     def deprefix(self):
         '''return a new unit that remove all the prefix.'''
-        if all(unit.hasnoprefix() for unit in self._elements):
+        if not self.has_prefix():
             return self
         elements = self._elements.copy()
-        for unit in filter(lambda u: u.hasprefix(), self._elements):
-            elements[unit.deprefix()] += elements.pop(unit)
+        for unit in self._elements:
+            if unit.has_prefix():
+                elements[unit.deprefix()] += elements.pop(unit)
         return self._move(elements)
     
-    def toSIbase(self):
-        '''return a combination of base SI unit with the same dimension.'''
-        elems = {SingleUnit(s): e for s, e in zip(BASE_SI, self.dimension) if e}
-        return self._move(Compound._move(elems))  # type: ignore
-        
+    def SI_base_form(self):
+        '''return the unit in SI base units with the same dimension.'''
+        return self.from_dimension(self.dimension)
+
     def simplify(self):
-        '''
+        """
         Simplify the complex unit to a simple unit with the same dimension.
 
         The form will be the one of _u_, _u⁻¹_, _u²_, _u⁻²_,
@@ -152,28 +205,20 @@ class MultiUnit:
         like mass for _kg_, length for _m_, time for _s_, etc.
 
         Here list the standard SI units for different dimensions:
-        - Base: 
-          _m_ [L], _kg_ [M], _s_ [T], _A_ [I], _K_ [H], _mol_ [N], _cd_ [J];
-        - Mechanic: 
-          _Hz_ [T⁻¹], _N_ [T⁻²LM], _Pa_ [T⁻²L⁻¹M], _J_ [T⁻²L²M], _W_ [T⁻³L²M];
-        - Electromagnetic: 
-          _C_ [TI], _V_ [T⁻³L²MI⁻¹], _F_ [T⁴L⁻²M⁻¹I²], _Ω_ [T⁻³L²MI⁻²],
-          _S_ [T³L⁻²M⁻¹I²], _Wb_ [T⁻²L²MI⁻¹], _T_ [T⁻²MI⁻¹], _H_ [T⁻²L²MI⁻²];
-        - Other:
-          _lx_ [L⁻²J], _Gy_ [T⁻²L²], _kat_ [T⁻¹N]
-        '''
+        s, m, kg, A, K, mol, cd,
+        Hz, N, Pa, J, W, C, V, F, Ω, S, Wb, T, H, lx, Gy, kat.
+        """
         # single unit itself
         if len(self._elements) < 2:
             return self
-        if self.isdimensionless():
-            return self._move(Compound._move({}))  # type: ignore
+        if self.is_dimensionless():
+            return self._move_dict({})
         # single unit with simple exponent
-        _SIMPLE_EXPONENT = tuple(map(Fraction, (1, -1, 2, -2)))
         for e in _SIMPLE_EXPONENT:
-            symbol = UNIT_STD.get(self.dimension.root(e))
-            if symbol is None:
+            unit_std = _UNIT_STD.get(self.dimension.root(e))
+            if unit_std is None:
                 continue
-            return self._move(Compound._move({SingleUnit(symbol): e}))  # type: ignore
+            return self._move_dict({unit_std: e})
         # reduce units with same dimension
         dim_counter = Counter(u.dimension for u in self._elements)
         if all(count < 2 for count in dim_counter.values()):
@@ -182,12 +227,13 @@ class MultiUnit:
         for dim, count in dim_counter.items():
             if count < 2:
                 continue
-            symbol = UNIT_STD.get(dim)
-            if symbol is None:
+            unit_std = _UNIT_STD.get(dim)
+            if unit_std is None:
                 continue
-            for unit in filter(lambda u: u.dimension == dim, self._elements):
-                e = elements.pop(unit)
-                elements[SingleUnit(symbol)] += e
+            for unit in self._elements:
+                if unit.dimension == dim:
+                    e = elements.pop(unit)
+                    elements[unit_std] += e
         return self._move(elements)
 
     @property

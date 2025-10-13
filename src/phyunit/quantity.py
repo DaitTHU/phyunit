@@ -85,7 +85,7 @@ class Constant(Generic[T]):
             raise TypeError(msg)
         return Quantity(self._value[i], self._unit)  # type: ignore
     
-    def isdimensionless(self) -> bool: return self.unit.isdimensionless()
+    def is_dimensionless(self) -> bool: return self.unit.is_dimensionless()
 
     def copy(self): return self.__class__(self._value, self._unit)
     
@@ -104,10 +104,10 @@ class Constant(Generic[T]):
     def deprefix_unit(self):
         '''remove all the prefix of the unit.'''
         return self.to(self.unit.deprefix())
-
-    def toSIbase(self):
+    
+    def to_SI_base_unit(self):
         '''convert to SI base unit.'''
-        return self.to(self.unit.toSIbase())
+        return self.to(self.unit.SI_base_form())
 
     def simplify_unit(self):
         '''simplify the unit.'''
@@ -117,7 +117,7 @@ class Constant(Generic[T]):
     def __comparison(op):
         def __op(self: 'Constant', other):
             if not isinstance(other, self._base_cls):
-                if not self.isdimensionless():
+                if not self.is_dimensionless():
                     raise ValueError(f'{self.dimension} cannot be compared with dimensionless value.')
                 return op(self._std_value, other)
             if self.dimension != other.dimension:
@@ -151,7 +151,7 @@ class Constant(Generic[T]):
         '''
 
         def __op(self: 'Constant', other: 'Constant'):
-            if self.isdimensionless() and not isinstance(other, self._base_cls):
+            if self.is_dimensionless() and not isinstance(other, self._base_cls):
                 return Quantity(op(self._std_value, other))
             if self.dimension != other.dimension:
                 raise ValueError(f'dimension {self.dimension} != {other.dimension}')
@@ -159,7 +159,7 @@ class Constant(Generic[T]):
             return Quantity(op(self.value, other_var), self.unit)
 
         def __iop(self: 'Constant', other: 'Constant'):
-            if self.isdimensionless() and not isinstance(other, self._base_cls):
+            if self.is_dimensionless() and not isinstance(other, self._base_cls):
                 self._value *= self.unit.factor
                 self._value = iop(self._value, other)
                 self._unit = UNITLESS
@@ -172,7 +172,7 @@ class Constant(Generic[T]):
 
         def __rop(self: 'Constant', other):
             '''type(other) is not Constant.'''
-            if not self.isdimensionless():
+            if not self.is_dimensionless():
                 raise ValueError(
                     f'{self.dimension} cannot ± dimensionless value.')
             return Quantity(op(other, self._std_value))
@@ -237,7 +237,7 @@ class Constant(Generic[T]):
     __ipow__ = inplace(__pow__)
 
     def __rpow__(self, other):
-        if not self.isdimensionless():
+        if not self.is_dimensionless():
             raise ValueError('Quantity must be dimensionless to be exponent.')
         return other ** self.value
 
@@ -250,8 +250,8 @@ class Constant(Generic[T]):
         units = [i.unit if isinstance(i, self._base_cls) else UNITLESS for i in inputs]
         unit = None  # None means output is just value, not Quantity
         if ufunc_name in ufunc_dict['dimless']:
-            if not all(u.isdimensionless() for u in units):
-                dims = ', '.join(f"'{u.dimension}'" for u in units if not u.isdimensionless())
+            if not all(u.is_dimensionless() for u in units):
+                dims = ', '.join(f"'{u.dimension}'" for u in units if not u.is_dimensionless())
                 msg = f"Quantities in '{ufunc_name}' must be dimensionless, got {dims}."
                 raise ValueError(msg)
             unit = None
@@ -299,11 +299,11 @@ class Constant(Generic[T]):
         elif ufunc_name in ufunc_dict['other']:
             if ufunc_name == 'copysign':
                 unit = units[0]
-            elif ufunc_name == 'heaviside' and not units[1].isdimensionless():
+            elif ufunc_name == 'heaviside' and not units[1].is_dimensionless():
                 msg = f"Heaviside(x) must be dimensionless, got '{units[1].dimension}'"
                 raise ValueError(msg)
             elif ufunc_name in {'power', 'float_power'}:
-                if not units[1].isdimensionless():
+                if not units[1].is_dimensionless():
                     msg = f"Exponent must be dimensionless, got '{units[1].dimension}'"
                     raise ValueError(msg)
                 unit = units[0]**inputs[1]
@@ -350,11 +350,6 @@ class Quantity(Constant[T]):
     @property
     def _std_value(self) -> T: return self._value * self._unit.factor
 
-    def isdimensionless(self) -> bool: return self.unit.isdimensionless()
-
-    def copy(self):
-        return self.__class__(self._value, self._unit)
-
     def __to(self, new_unit: Unit, inplace: bool):
         '''internal use only'''
         factor = self.unit.factor / new_unit.factor
@@ -378,10 +373,10 @@ class Quantity(Constant[T]):
 
     def deprefix_unit(self, *, inplace=False):
         return self.to(self.unit.deprefix(), inplace=inplace)
-    
-    def toSIbase(self, *, inplace=False):
-        return self.to(self.unit.toSIbase(), inplace=inplace)
-    
+
+    def to_SI_base_unit(self, *, inplace=False):
+        return self.to(self.unit.SI_base_form(), inplace=inplace)
+
     def simplify_unit(self, *, inplace=False):
         return self.to(self.unit.simplify(), inplace=inplace)
     
