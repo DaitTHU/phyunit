@@ -1,5 +1,5 @@
 from ._data.prefixes import PREFIX, PREFIX_ALIAS, PREFIX_NAME
-from ._data.units import UNIT, UNIT_ALIAS, UNIT_NAME
+from ._data.units import UNIT, UNIT_ALIAS, UNIT_NAME, UNIT_SPECIAL
 from .exceptions import UnitSymbolError
 
 _PREFIX_MAXLEN = max(map(len, PREFIX))
@@ -36,6 +36,9 @@ def _resolve_single(symbol: str) -> tuple[str, str]:
             if UNIT[UNIT_NAME[unit]].noprefix:
                 continue
             return PREFIX_NAME[prefix], UNIT_NAME[unit]
+    # special unit
+    if symbol in UNIT_SPECIAL:
+        return UNIT_SPECIAL[symbol]
     raise UnitSymbolError(f"'{symbol}' is not a valid unit symbol.")
 
 
