@@ -35,8 +35,9 @@ class Unit(MultiUnit):
 UNITLESS = Unit('')
 DIMENSIONLESS = UNITLESS.dimension
 
-DEGREE = Unit('degree')
+DEGREE = Unit('°')
 RADIAN = Unit('rad')
+COMPACT_UNITS = {'', '°', '′', '″', '%', '‰', '‱'}
 
 
 class Constant(Generic[T]):
@@ -59,26 +60,30 @@ class Constant(Generic[T]):
     def _base_cls(self): return Constant
     
     def __repr__(self) -> str:
-        if self.unit == UNITLESS:
+        if self.unit.symbol == '':
             return f'{self.__class__.__name__}({self.value})'
-        return f"{self.__class__.__name__}({self.value}, '{self.unit}')"
+        return f"{self.__class__.__name__}({self.value}, '{self.unit.symbol}')"
     
     def __str__(self):
-        if self.unit == UNITLESS:
-            return str(self.value)
-        return f'{self.value} {self.unit}'
+        if self.unit.symbol in COMPACT_UNITS:
+            return f'{self.value}{self.unit.symbol}'
+        return f'{self.value} {self.unit.symbol}'
     
     def __format__(self, format_spec: str):
-        if self.unit == UNITLESS:
-            return format(self.value, format_spec)
-        return f'{self.value:{format_spec}} {self.unit}'
-    
-    def __getitem__(self, i): 
+        if 'U' in format_spec:
+            format_spec = format_spec.replace('U', '', 1)
+            unit_symbol = self.unit.name
+        else:
+            unit_symbol = self.unit.symbol
+        if unit_symbol in COMPACT_UNITS:
+            return f'{self.value:{format_spec}}{unit_symbol}'
+        return f'{self.value:{format_spec}} {unit_symbol}'
+
+    def __getitem__(self, i):
         if not hasattr(self._value, '__getitem__'):
             msg = f"'{self._value.__class__.__name__}' object is not subscriptable."
             raise TypeError(msg)
         return Quantity(self._value[i], self._unit)  # type: ignore
-        
     
     def isdimensionless(self) -> bool: return self.unit.isdimensionless()
 

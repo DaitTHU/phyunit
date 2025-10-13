@@ -79,9 +79,9 @@ __UNIT_LIB: dict[Dimension, dict[str | tuple[str, ...], UnitData]] = {
         '': UnitData(1, ''),
         'rad': UnitData(1, 'radian'),
         'sr': UnitData(1, 'steradian'),
-        '°': UnitData(Math.DEGREE, 'degree', noprefix=True),
-        ('′', "'"): UnitData(Math.ARCMIN, 'arcminute', noprefix=True),  # chr(0x2032), chr(0x27)
-        ('″', '"'): UnitData(Math.ARCSEC, 'arcsecond', noprefix=True),  # chr(0x2033), chr(0x22)
+        ('°', 'deg'): UnitData(Math.DEGREE, 'degree', noprefix=True),
+        ('′', "'"): UnitData(Math.ARCMIN, ['arcminute', 'arcmin'], noprefix=True),  # chr(0x2032), chr(0x27)
+        ('″', '"'): UnitData(Math.ARCSEC, ['arcsecond', 'arcsec'], noprefix=True),  # chr(0x2033), chr(0x22)
         ('%', '٪'): UnitData(1e-2, 'percent', noprefix=True),  # chr(0x25), chr(0x66A)
         '‰': UnitData(1e-3, 'permille', noprefix=True),
         '‱': UnitData(1e-4, ['permyriad', 'per ten thousand'], noprefix=True),

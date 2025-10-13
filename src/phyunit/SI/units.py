@@ -52,6 +52,12 @@ class si(ConstClass):
 
     rad = Unit('rad')
     '''radian, plane angle'''
+    deg = Unit('°')
+    '''degree, plane angle'''
+    arcmin = Unit("′")
+    '''arcminute, plane angle'''
+    arcsec = Unit("″")
+    '''arcsecond, plane angle'''
     sr = Unit('sr')
     '''steradian, solid angle'''
     Hz, kHz, MHz, GHz, THz = prefix_map('Hz', ' kMGT')
@@ -118,7 +124,7 @@ class si(ConstClass):
     mL, L = prefix_map('L', 'm ')
     '''liter/litre, 1 L = 1 dm³, volume'''
     u = Unit('u')
-    '''atomic mass, 1 u = m(¹²C) / 12, mass'''
+    '''unified atomic mass unit, 1 u = m(¹²C) / 12, mass'''
     bar = Unit('bar')
     '''bar, standard-state pressure'''
     atm = Unit('atm')
@@ -127,7 +133,7 @@ class si(ConstClass):
     '''millimetre of mercury, 760 mmHg = 1 atm, pressure'''
     Wh, kWh = prefix_map('Wh', ' k')
     '''watthour, energy'''
-    meV, keV, MeV, GeV, TeV, eV = prefix_map('eV', 'mkMGT ')
+    meV, eV, keV, MeV, GeV, TeV = prefix_map('eV', 'm kMGT')
     '''electron volt, energy'''
     cal, kcal = prefix_map('cal', ' k')
     '''calorie, energy'''
