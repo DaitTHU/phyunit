@@ -1,4 +1,4 @@
-from typing import Iterable, TypeVar
+from typing import Iterable, TypeVar, overload
 
 T = TypeVar('T')
 
@@ -13,7 +13,12 @@ def unzip(zip_iter: Iterable):
     return zip(*zip_iter)
 
 
-def firstof(iterable: Iterable[T], /, default: T) -> T:
+@overload
+def firstof(iterable: Iterable[T], /) -> T | None: ...
+@overload
+def firstof(iterable: Iterable[T], /, default: T) -> T: ...
+
+def firstof(iterable: Iterable[T], /, default: T | None = None) -> T | None:
     '''return the first item of an iterable.'''
     for item in iterable:
         return item
