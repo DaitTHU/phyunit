@@ -89,17 +89,22 @@ class Constant(Generic[T]):
 
     def copy(self): return self.__class__(self._value, self._unit)
     
+    def value_in(self, unit: str | Unit, *, strict: bool = True) -> T:
+        '''get the value in the specified unit.'''
+        unit = Unit.ensure(unit)
+        if strict and unit.dimension != self.unit.dimension:
+            msg = f"Cannot convert '{self.unit}' (dimension {self.dimension}) to '{unit}' (dimension {unit.dimension})."
+            raise ValueError(msg)
+        factor = self.unit.factor / unit.factor
+        return self._value * factor
+
     def to(self, new_unit: str | Unit, *, strict: bool = True):
         '''unit conversion.
         
         If strict is True, the unit must have the same dimension.
         '''
         unit = Unit.ensure(new_unit)
-        if strict and unit.dimension != self.unit.dimension:
-            raise ValueError(f"Cannot convert '{self.unit}' to '{unit}':"
-                             f" dimension {self.dimension} != {unit.dimension}.")
-        factor = self.unit.factor / unit.factor
-        return self.__class__(self._value * factor, unit)
+        return self.__class__(self.value_in(unit, strict=strict), unit)
     
     def deprefix_unit(self):
         '''remove all the prefix of the unit.'''
@@ -118,10 +123,12 @@ class Constant(Generic[T]):
         def __op(self: 'Constant', other):
             if not isinstance(other, self._base_cls):
                 if not self.is_dimensionless():
-                    raise ValueError(f'{self.dimension} cannot be compared with dimensionless value.')
+                    msg = f"Cannot compare dimension {self.dimension} with dimensionless."
+                    raise ValueError(msg)
                 return op(self._std_value, other)
             if self.dimension != other.dimension:
-                raise ValueError(f'dimension {self.dimension} != {other.dimension}')
+                msg = f"Cannot compare dimension {self.dimension} with {other.dimension}."
+                raise ValueError(msg)
             return op(self._std_value, other._std_value)
         return __op
     
@@ -154,7 +161,8 @@ class Constant(Generic[T]):
             if self.is_dimensionless() and not isinstance(other, self._base_cls):
                 return Quantity(op(self._std_value, other))
             if self.dimension != other.dimension:
-                raise ValueError(f'dimension {self.dimension} != {other.dimension}')
+                msg = f"Cannot add/subtract dimension {self.dimension} with {other.dimension}."
+                raise ValueError(msg)
             other_var = other.value * (other.unit.factor / self.unit.factor)
             return Quantity(op(self.value, other_var), self.unit)
 
@@ -165,7 +173,8 @@ class Constant(Generic[T]):
                 self._unit = UNITLESS
                 return self
             if self.dimension != other.dimension:
-                raise ValueError(f'dimension {self.dimension} != {other.dimension}')
+                msg = f"Cannot add/subtract dimension {self.dimension} with {other.dimension}."
+                raise ValueError(msg)
             other_var = other.value * (other.unit.factor / self.unit.factor)
             self._value = iop(self._value, other_var)
             return self
@@ -173,8 +182,8 @@ class Constant(Generic[T]):
         def __rop(self: 'Constant', other):
             '''type(other) is not Constant.'''
             if not self.is_dimensionless():
-                raise ValueError(
-                    f'{self.dimension} cannot ± dimensionless value.')
+                msg = f"Cannot add/subtract dimension {self.dimension} with dimensionless."
+                raise ValueError(msg)
             return Quantity(op(other, self._std_value))
 
         return __op, __iop, __rop
@@ -238,7 +247,8 @@ class Constant(Generic[T]):
 
     def __rpow__(self, other):
         if not self.is_dimensionless():
-            raise ValueError('Quantity must be dimensionless to be exponent.')
+            msg = f'Quantity must be dimensionless to be exponent, got dimension {self.dimension}.'
+            raise ValueError(msg)
         return other ** self.value
 
     def root(self, n):
@@ -367,18 +377,18 @@ class Quantity(Constant[T]):
         '''
         unit = Unit.ensure(new_unit)
         if strict and unit.dimension != self.unit.dimension:
-            raise ValueError(f"Cannot convert {self.unit} to {unit}:"
-                             f" dimension mismatch {self.dimension} != {unit.dimension}.")
+            msg = f"Cannot convert {self.unit} (dimension {self.dimension}) to {unit} (dimension {unit.dimension})."
+            raise ValueError(msg)
         return self.__to(unit, inplace)
 
     def deprefix_unit(self, *, inplace=False):
-        return self.to(self.unit.deprefix(), inplace=inplace)
+        return self.__to(self.unit.deprefix(), inplace=inplace)
 
     def to_SI_base_unit(self, *, inplace=False):
-        return self.to(self.unit.SI_base_form(), inplace=inplace)
+        return self.__to(self.unit.SI_base_form(), inplace=inplace)
 
     def simplify_unit(self, *, inplace=False):
-        return self.to(self.unit.simplify(), inplace=inplace)
+        return self.__to(self.unit.simplify(), inplace=inplace)
     
     def __iadd__(self, other): return self.__Iadd__(other)
     def __isub__(self, other): return self.__Isub__(other)
