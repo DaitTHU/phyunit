@@ -7,7 +7,7 @@ from ._data.units import BASE_SI, UNIT_STD
 from .compound import Compound
 from .dimension import Dimension
 from .singleunit import SingleUnit, UnitSymbolError
-from .utils.iter_tools import neg_after
+from .utils.iter_tools import neg_after, firstof
 from .utils.operator import inplace
 from .utils.special_char import SUP_TRANS
 from .utils.special_char import superscript as sup
@@ -144,43 +144,72 @@ class MultiUnit:
 
     def is_dimensionless(self) -> bool: return self.dimension.is_dimensionless()
 
-    def is_single(self) -> bool: return len(self._elements) <= 1
+    def __len__(self) -> int:
+        """
+        number of single units.
+        >>> len(Unit('N'))
+        1
+        >>> len(Unit('kg·m/s²'))
+        3
+        """
+        return len(self._elements)
 
-    def is_multiple(self) -> bool: return len(self._elements) > 1
+    def __bool__(self) -> bool: return len(self._elements) > 0
 
-    def has_prefix(self) -> bool: 
+    def is_single(self) -> bool:
+        """
+        if this unit is a single unit.
+        >>> Unit('m').is_single()
+        True
+        >>> Unit('m²').is_single()
+        False
+        >>> Unit('kg·m/s²').is_single()
+        False
+        """
+        return len(self._elements) == 0 or \
+            (len(self._elements) == 1 and firstof(self._elements.values()) == 1)
+
+    def has_prefix(self) -> bool:
         return any(unit.has_prefix() for unit in self._elements)
     
     def components(self):
-        return tuple(self._move_dict({u: ONE}) for u in self._elements)
+        """return an iterable of unit symbols for the unit."""
+        return (u.symbol for u in self._elements)
 
-    def __contains__(self, unit: 'str | MultiUnit') -> bool:
+    def items(self):
+        """return an iterable of (unit symbol, exponent) pairs for the unit."""
+        return ((u.symbol, e) for u, e in self._elements.items())
+
+    def __contains__(self, unit) -> bool:
         """
         if a single unit is contained in this unit.
 
         Example
         ---
-        >>> 'm' in Unit('m/s')
+        >>> 'm' in Unit('m/s')   # str is allowed
+        True
+        >>> 'meter' in Unit('m/s')  # alias or name is also allowed
         True
         >>> Unit('s') in Unit('m/s')
         True
         >>> Unit('kg') in Unit('m/s')
         False
         >>> Unit('m²') in Unit('m/s')
-        True
-        >>> Unit('m/s') in Unit('m/s')
-        ValueError: 'm/s' is not a single unit.
+        False
+        >>> Unit('N') in Unit('kg·m/s²')
+        False
+        >>> Unit('m/s') in Unit('m/s')  # ValueError: 'm/s' is not a single unit.
         """
-        if not isinstance(unit, (str, MultiUnit)):
-            raise TypeError(f"{type(unit) = } is not 'str' or 'Unit'.")
+        if isinstance(unit, MultiUnit) and unit.is_single():
+            return all(u in self._elements for u in unit._elements)
         if isinstance(unit, str):
             try:
                 return SingleUnit(unit) in self._elements
             except UnitSymbolError:
                 unit = MultiUnit(unit)
-        if unit.is_multiple():
-            raise ValueError(f"'{unit}' is not a single unit.")
-        return all(u in self._elements for u in unit._elements)
+        if not isinstance(unit, (str, MultiUnit)):
+            raise TypeError(f"{type(unit) = } is not 'str' or 'Unit'.")
+        raise ValueError(f"'{unit}' is not a single unit.")
 
     def deprefix(self):
         '''return a new unit that remove all the prefix.'''
@@ -191,7 +220,7 @@ class MultiUnit:
             if unit.has_prefix():
                 elements[unit.deprefix()] += elements.pop(unit)
         return self._move(elements)
-    
+
     def SI_base_form(self):
         '''return the unit in SI base units with the same dimension.'''
         return self.from_dimension(self.dimension)
@@ -231,9 +260,8 @@ class MultiUnit:
             if unit_std is None:
                 continue
             for unit in self._elements:
-                if unit.dimension == dim:
-                    e = elements.pop(unit)
-                    elements[unit_std] += e
+                if unit.dimension == dim and unit != unit_std:
+                    elements[unit_std] += elements.pop(unit)
         return self._move(elements)
 
     @property
