@@ -84,9 +84,8 @@ class SingleUnit:
 
     def has_prefix(self) -> bool: return self.prefix != ''
 
-    def is_prefix(self) -> bool: return self.unit == '' and self.prefix != ''
-
-    def __repr__(self) -> str: return f'{self.__class__.__name__}({self.symbol})'
+    def __repr__(self) -> str:
+        return f"{self.__class__.__name__}('{self.symbol}')"
 
     def __str__(self) -> str: return self.symbol
 
@@ -96,4 +95,3 @@ class SingleUnit:
         if not isinstance(other, SingleUnit):
             return NotImplemented
         return self.prefix == other.prefix and self.unit == other.unit
-
