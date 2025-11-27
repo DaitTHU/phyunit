@@ -64,10 +64,8 @@ class UnitData:
         if self.recommend is None:
             return
         import warnings
-        warnings.warn(
-            f"'{self.name}' is deprecated, use '{self.recommend}' instead.",
-            UnitDeprecationWarning, stacklevel=2
-        )
+        msg = f"'{self.name}' is deprecated, use '{self.recommend}' instead."
+        warnings.warn(msg, UnitDeprecationWarning, stacklevel=2)
 
 
 BASE_SI = ('s', 'm', 'kg', 'A', 'K', 'mol', 'cd')
@@ -75,7 +73,7 @@ BASE_SI = ('s', 'm', 'kg', 'A', 'K', 'mol', 'cd')
 # unit library, classified by dimension, internal use only
 __UNIT_LIB: dict[Dimension, dict[str | tuple[str, ...], UnitData]] = {
     DimensionConst.DIMENSIONLESS: {
-        '': UnitData(1, ''),
+        '': UnitData(1, '', noprefix=True),
         'rad': UnitData(1, 'radian'),
         'sr': UnitData(1, 'steradian'),
         ('°', 'deg'): UnitData(Math.DEGREE, 'degree', noprefix=True),
