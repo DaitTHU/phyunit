@@ -7,20 +7,19 @@ from ._data.units import BASE_SI, UNIT_STD
 from .compound import Compound
 from .dimension import Dimension
 from .singleunit import SingleUnit, UnitSymbolError
-from .utils.iter_tools import neg_after, firstof
+from .utils.iter_tools import firstof, neg_after
 from .utils.operator import inplace
-from .utils.special_char import SUP_TRANS
-from .utils.special_char import superscript as sup
+from .utils.special_char import SUP_TRANS, superscript
 
 _UNIT_STD = {d: SingleUnit(s) for d, s in UNIT_STD.items()}
 _UNIT_SI = tuple(u for u in _UNIT_STD.values() if u.symbol in BASE_SI)
 ONE, TWO = Fraction(1), Fraction(2)
 _SIMPLE_EXPONENT = (ONE, -ONE, TWO, -TWO)
 
-_SEP = re.compile(r'[/.·]')  # unit separator pattern
-_SEPS = re.compile(r'[/.· ]')  # unit separator pattern with space
-_NUM = re.compile(r'[+-]?[0-9]+$')  # number pattern
-_EXPO = re.compile(r'\^?[+-]?[0-9]+$')  # exponent pattern
+_SEP = re.compile(r'[/.·*]')        # unit separator pattern
+_SEPS = re.compile(r'[/.·* ]')      # unit separator pattern with space
+_NUM = re.compile(r'[+-]?\d+$')                 # number pattern
+_EXPO = re.compile(r'(\^|\*\*)([+-]?\d+)')      # exponent pattern
 
 
 def _resolve_multi(symbol: str, sep: re.Pattern[str]) -> Compound[SingleUnit]:
@@ -34,11 +33,12 @@ def _resolve_multi(symbol: str, sep: re.Pattern[str]) -> Compound[SingleUnit]:
         symbol (str): The unit symbol string to resolve.
         sep (re.Pattern): The regex pattern used to split the symbol into units.
     Returns:
-        Compound[SingleUnit]: A mapping of SingleUnit objects to their exponents representing the parsed unit.
+        Compound[SingleUnit]: A dict of {SingleUnit: exponent}
     Raises:
-        ValueError: If the symbol cannot be parsed into valid units.
+        UnitSymbolError: If the symbol cannot be parsed into valid units.
     '''
-    symbol = symbol.translate(SUP_TRANS)  # translate superscript to digit
+    # translate superscript to digit and remove exponent notation
+    symbol = _EXPO.sub(r'\2', symbol.translate(SUP_TRANS))
     # split symbol into unit+exponent via separator
     unites = [unite for unite in sep.split(symbol)]
     expos = [1 if m is None else int(m.group()) for m in map(_NUM.search, unites)]
@@ -49,8 +49,8 @@ def _resolve_multi(symbol: str, sep: re.Pattern[str]) -> Compound[SingleUnit]:
             break
     elements: Compound[SingleUnit] = Compound()
     for unite, e in zip(unites, expos):
-        if e != 0 and unite:
-            elements[SingleUnit(_EXPO.sub('', unite))] += e
+        if e != 0 and (unit := _NUM.sub('', unite)):
+            elements[SingleUnit(unit)] += e
     return elements
 
 
@@ -86,11 +86,11 @@ class MultiUnit:
         self._dimension = Dimension.product(u.dimension**e for u, e in elements.items())
         self._factor = float_product(u.factor**e for u, e in elements.items())
         # symbol and name
-        self._symbol = '·'.join(u.symbol + sup(e) for u, e in elements.pos_items())
-        self._name = '·'.join(u.name + sup(e) for u, e in elements.pos_items())
-        if any(e < 0 for e in elements.values()):
-            self._symbol += '/' + '·'.join(u.symbol + sup(-e) for u, e in elements.neg_items())
-            self._name += '/' + '·'.join(u.name + sup(-e) for u, e in elements.neg_items())
+        self._symbol = '·'.join(u.symbol + superscript(e) for u, e in elements.pos_items())
+        self._name = '·'.join(u.name + superscript(e) for u, e in elements.pos_items())
+        if any(elements.neg_items()):
+            self._symbol += '/' + '·'.join(u.symbol + superscript(-e) for u, e in elements.neg_items())
+            self._name += '/' + '·'.join(u.name + superscript(-e) for u, e in elements.neg_items())
 
     @classmethod
     def from_dimension(cls, dimension: Dimension, /):
